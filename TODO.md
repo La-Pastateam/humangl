@@ -7,10 +7,10 @@
 
 ## I. Remettre en forme vulkanalia -> tcros
 
-* Empêcher l'affichage nécessaire d'un modèle
-* Gérer l'affichage d'une fenêtre vide sans erreurs.
+* Ajouter une sortie propre avec echap √
+* ~Gérer l'affichage d'une fenêtre vide sans erreurs.~
 * Supprimer la gestion des textures
-* Supprimer la gestion des modèles
+* Supprimer la gestion des modèles par fichier local (cf. II.)
 
 ## II. Créer des modèles à partir d'une focntion -> ?
 
