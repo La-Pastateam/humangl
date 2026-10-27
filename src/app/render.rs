@@ -13,8 +13,7 @@ use vulkanalia::vk::KhrSwapchainExtensionDeviceCommands;
 
 use super::App;
 use crate::math::{self, Deg, Mat4, point3, vec3};
-use crate::model::load_model;
-use crate::vulkan::buffer::{UniformBufferObject, create_index_buffer, create_vertex_buffer};
+use crate::vulkan::buffer::UniformBufferObject;
 use crate::vulkan::sync::MAX_FRAMES_IN_FLIGHT;
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -22,10 +21,11 @@ use crate::vulkan::sync::MAX_FRAMES_IN_FLIGHT;
 impl App {
     /// Renders a frame for our Vulkan app.
     pub unsafe fn render(&mut self, window: &Window) -> Result<()> {
-        if self.new_model {
-            self.new_model = false;
-            self.reload_model()?;
-        }
+        //TODO: Might be useful when we add or remove a limb
+        // if self.new_model {
+        //     self.new_model = false;
+        //     self.reload_model()?;
+        // }
 
         self.device
             .wait_for_fences(&[self.data.in_flight_fences[self.frame]], true, u64::MAX)?;
@@ -56,8 +56,6 @@ impl App {
         let wait_semaphores = &[self.data.image_available_semaphores[self.frame]];
         let wait_stages = &[vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
         let command_buffers = &[self.data.command_buffers[image_index]];
-        // ── BUG: Fix : Mauvaise indexation de la swapchain ────────
-        // ── Before -> ...semaphore[self.frame] ────────
         let signal_semaphores = &[self.data.render_finished_semaphores[image_index]];
         let submit_info = vk::SubmitInfo::builder()
             .wait_semaphores(wait_semaphores)
@@ -99,23 +97,24 @@ impl App {
         Ok(())
     }
 
-    unsafe fn reload_model(&mut self) -> Result<()> {
-        self.device.device_wait_idle()?;
-        self.device.destroy_buffer(self.data.index_buffer, None);
-        self.device.free_memory(self.data.index_buffer_memory, None);
-        self.device.destroy_buffer(self.data.vertex_buffer, None);
-        self.device
-            .free_memory(self.data.vertex_buffer_memory, None);
-
-        self.data.vertices.clear();
-        self.data.indices.clear();
-
-        load_model(&mut self.data)?;
-        create_vertex_buffer(&self.instance, &self.device, &mut self.data)?;
-        create_index_buffer(&self.instance, &self.device, &mut self.data)?;
-
-        Ok(())
-    }
+    //TODO: Might be useful when we add or remove a limb
+    // unsafe fn reload_model(&mut self) -> Result<()> {
+    //     self.device.device_wait_idle()?;
+    //     self.device.destroy_buffer(self.data.index_buffer, None);
+    //     self.device.free_memory(self.data.index_buffer_memory, None);
+    //     self.device.destroy_buffer(self.data.vertex_buffer, None);
+    //     self.device
+    //         .free_memory(self.data.vertex_buffer_memory, None);
+    //
+    //     self.data.vertices.clear();
+    //     self.data.indices.clear();
+    //
+    //     load_model(&mut self.data)?;
+    //     create_vertex_buffer(&self.instance, &self.device, &mut self.data)?;
+    //     create_index_buffer(&self.instance, &self.device, &mut self.data)?;
+    //
+    //     Ok(())
+    // }
 
     unsafe fn update_command_buffer(&mut self, image_index: usize) -> Result<()> {
         let command_pool = self.data.command_pools[image_index];

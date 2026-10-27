@@ -9,7 +9,7 @@
 use winit::dpi::LogicalSize;
 use winit::event::ElementState;
 use winit::event::{Event, WindowEvent};
-use winit::event_loop::EventLoop;
+use winit::event_loop::{EventLoop, EventLoopWindowTarget};
 use winit::window::WindowBuilder;
 
 use anyhow::Result;
@@ -67,18 +67,17 @@ fn main() -> Result<()> {
                 }
                 // Destroy our Vulkan app.
                 WindowEvent::CloseRequested => {
-                    elwt.exit();
-                    unsafe {
-                        app.destroy();
-                    }
+                    exit_app(&mut app, elwt);
                 }
 
                 WindowEvent::KeyboardInput { event, .. }
                     if event.state == ElementState::Pressed =>
                 {
                     match handle_input(event.physical_key, &mut app.data) {
-                        Ok(Signal::ReloadModel) => app.new_model = true,
                         Ok(Signal::Nothing) => {}
+                        Ok(Signal::Exit) => {
+                            exit_app(&mut app, elwt);
+                        }
                         Err(e) => {
                             error!("Error has ocurred while operating input {e}");
                         }
@@ -91,4 +90,11 @@ fn main() -> Result<()> {
     })?;
 
     Ok(())
+}
+
+fn exit_app(app: &mut App, elwt: &EventLoopWindowTarget<()>) {
+    elwt.exit();
+    unsafe {
+        app.destroy();
+    }
 }
