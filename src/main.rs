@@ -77,7 +77,6 @@ fn main() -> Result<()> {
                     if event.state == ElementState::Pressed =>
                 {
                     match handle_input(event.physical_key, &mut app.data) {
-                        Ok(Signal::ReloadModel) => app.new_model = true,
                         Ok(Signal::Nothing) => {}
                         Err(e) => {
                             error!("Error has ocurred while operating input {e}");
