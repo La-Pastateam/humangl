@@ -35,9 +35,6 @@ use crate::vulkan::pipeline::create_pipeline;
 use crate::vulkan::render_pass::create_render_pass;
 use crate::vulkan::swapchain::{create_swapchain, create_swapchain_image_views};
 use crate::vulkan::sync::create_sync_objects;
-use crate::vulkan::texture::{
-    create_texture_image, create_texture_image_view, create_texture_sampler,
-};
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -79,9 +76,6 @@ impl App {
         create_color_objects(&instance, &device, &mut data)?;
         create_depth_objects(&instance, &device, &mut data)?;
         create_framebuffers(&device, &mut data)?;
-        create_texture_image(&instance, &device, &mut data)?;
-        create_texture_image_view(&device, &mut data)?;
-        create_texture_sampler(&device, &mut data)?;
         load_model(&mut data)?;
         create_vertex_buffer(&instance, &device, &mut data)?;
         create_index_buffer(&instance, &device, &mut data)?;
@@ -133,12 +127,6 @@ impl App {
             .command_pools
             .iter()
             .for_each(|p| self.device.destroy_command_pool(*p, None));
-        self.device.destroy_sampler(self.data.texture_sampler, None);
-        self.device
-            .destroy_image_view(self.data.texture_image_view, None);
-        self.device.destroy_image(self.data.texture_image, None);
-        self.device
-            .free_memory(self.data.texture_image_memory, None);
         self.device
             .destroy_descriptor_set_layout(self.data.descriptor_set_layout, None);
         self.device.destroy_buffer(self.data.vertex_buffer, None);
