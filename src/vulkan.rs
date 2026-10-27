@@ -11,4 +11,3 @@ pub mod pipeline;
 pub mod render_pass;
 pub mod swapchain;
 pub mod sync;
-pub mod texture;
