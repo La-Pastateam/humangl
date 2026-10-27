@@ -1,0 +1,37 @@
+# Use the official Rust image based on Debian as the base image
+FROM rust:latest
+
+# Update package lists and install Vulkan and windowing dependencies:
+#   - libvulkan-dev : Vulkan dev headers and libraries
+#   - vulkan-tools : Vulkan CLI tools (e.g., vulkaninfo)
+#   - vulkan-validationlayers : Vulkan debug validation layers
+#   - glslc : GLSL to SPIR-V shader compiler
+#   - libx11-dev : X11 core client libraries
+#   - libxcursor-dev : X11 mouse cursor support
+#   - libxrandr-dev : X11 screen resize/rotate support
+#   - libxi-dev : X11 input event handling
+#   - libxcb1-dev : XCB low-level X11 library
+#   - libxkbcommon-dev : Keyboard keymap handling
+#   - libxkbcommon-x11-0 : X11 keymap support (required by Winit)
+#   - libwayland-dev : Wayland protocol support
+#   - rm -rf /var/lib/apt/lists/* : Clean apt cache to reduce image size
+RUN apt-get update && apt-get install -y \
+    libvulkan-dev \
+    vulkan-tools \
+    vulkan-validationlayers \
+    glslc \
+    libx11-dev \
+    libxcursor-dev \
+    libxrandr-dev \
+    libxi-dev \
+    libxcb1-dev \
+    libxkbcommon-dev \
+    libxkbcommon-x11-0 \
+    libwayland-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set the working directory inside the container to /app
+WORKDIR /app
+
+# Set the default command to execute a bash shell when the container starts
+CMD ["bash"]
