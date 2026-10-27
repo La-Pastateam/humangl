@@ -1,7 +1,5 @@
 #version 450
 
-layout(binding = 1) uniform sampler2D texSampler;
-
 layout(push_constant) uniform PushConstants {
 	layout(offset = 64) float opacity;
 } pcs;
