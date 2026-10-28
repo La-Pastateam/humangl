@@ -33,3 +33,6 @@
 
 ## **V.** Finitions
 * Remettre le code bien dans des dossiers (vulkan par exemple)
+
+## **INFO**
+* watch -n1 "grep VmRSS /proc/$(pidof humangl)/status"  pour tester la mise en VRAM du projet, pour les fuites mémoires.
