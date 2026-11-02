@@ -18,14 +18,13 @@ use log::*;
 use std::process;
 
 use app::App;
-use key::*;
+use interactions::key::*;
 
 mod app;
-mod key;
-mod math;
+mod interactions;
 mod model;
-mod obj;
-mod ppm;
+mod parser;
+mod utils;
 mod vulkan;
 
 // ── Entry Point ───────────────────────────────────────────────────────────────

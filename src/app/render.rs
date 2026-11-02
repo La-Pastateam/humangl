@@ -12,7 +12,7 @@ use winit::window::Window;
 use vulkanalia::vk::KhrSwapchainExtensionDeviceCommands;
 
 use super::App;
-use crate::math::{self, Deg, Mat4, point3, vec3};
+use crate::utils::math::{self, Deg, Mat4, point3, vec3};
 use crate::vulkan::buffer::UniformBufferObject;
 use crate::vulkan::sync::MAX_FRAMES_IN_FLIGHT;
 
