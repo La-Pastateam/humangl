@@ -20,18 +20,19 @@ pub unsafe fn create_sync_objects(device: &Device, data: &mut AppData) -> Result
             .push(device.create_fence(&fence_info, None)?);
     }
 
-    // ── BUG: Fix : Mauvaise indexation de la swapchain ────────
-    // ── Before -> 0..MAX_FRAMES_IN_FLIGHT ────────
+    Ok(())
+}
+
+pub unsafe fn create_swapchain_sync_objects(device: &Device, data: &mut AppData) -> Result<()> {
+    let semaphore_info = vk::SemaphoreCreateInfo::builder();
+
+    data.render_finished_semaphores.clear();
     for _ in 0..data.swapchain_images.len() {
         data.render_finished_semaphores
             .push(device.create_semaphore(&semaphore_info, None)?);
     }
 
-    data.images_in_flight = data
-        .swapchain_images
-        .iter()
-        .map(|_| vk::Fence::null())
-        .collect();
+    data.images_in_flight = vec![vk::Fence::null(); data.swapchain_images.len()];
 
     Ok(())
 }

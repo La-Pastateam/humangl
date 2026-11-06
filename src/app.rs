@@ -36,7 +36,7 @@ use crate::vulkan::instance::{VALIDATION_ENABLED, create_instance};
 use crate::vulkan::pipeline::create_pipeline;
 use crate::vulkan::render_pass::create_render_pass;
 use crate::vulkan::swapchain::{create_swapchain, create_swapchain_image_views};
-use crate::vulkan::sync::create_sync_objects;
+use crate::vulkan::sync::{create_swapchain_sync_objects, create_sync_objects};
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -87,6 +87,7 @@ impl App {
         create_descriptor_sets(&device, &mut data)?;
         create_command_buffers(&device, &mut data)?;
         create_sync_objects(&device, &mut data)?;
+        create_swapchain_sync_objects(&device, &mut data)?;
 
         Ok(Self {
             entry,
@@ -116,6 +117,7 @@ impl App {
         create_descriptor_sets(&self.device, &mut self.data)?;
         create_image_command_pools(&self.instance, &self.device, &mut self.data)?;
         create_command_buffers(&self.device, &mut self.data)?;
+        create_swapchain_sync_objects(&self.device, &mut self.data)?;
         Ok(())
     }
 
