@@ -513,7 +513,6 @@ dependencies = [
  "pretty_env_logger",
  "rfd",
  "thiserror",
- "tobj",
  "vulkanalia",
  "winit",
 ]
@@ -1255,16 +1254,6 @@ dependencies = [
  "arrayref",
  "bytemuck",
  "strict-num",
-]
-
-[[package]]
-name = "tobj"
-version = "3.2.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57381207291289bad19de63acd3fbf5948ff99b2868116c367b7224c37d55f90"
-dependencies = [
- "ahash",
- "log",
 ]
 
 [[package]]
