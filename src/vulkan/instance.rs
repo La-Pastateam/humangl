@@ -6,6 +6,7 @@ use anyhow::{Result, anyhow};
 use log::*;
 use vulkanalia::Version;
 use vulkanalia::prelude::v1_0::*;
+use vulkanalia::vk::ExtDebugUtilsExtensionInstanceCommands;
 use vulkanalia::window as vk_window;
 use winit::window::Window;
 
@@ -115,6 +116,10 @@ pub unsafe fn create_instance(
     }
 
     let instance = entry.create_instance(&info, None)?;
+
+    if VALIDATION_ENABLED {
+        data.messenger = instance.create_debug_utils_messenger_ext(&debug_info, None)?;
+    }
 
     Ok(instance)
 }
