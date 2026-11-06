@@ -175,9 +175,6 @@ impl App {
         image_index: usize,
         model_index: usize,
     ) -> Result<vk::CommandBuffer> {
-        self.data
-            .secondary_command_buffers
-            .resize_with(image_index + 1, Vec::new);
         let command_buffers = &mut self.data.secondary_command_buffers[image_index];
         while model_index >= command_buffers.len() {
             let allocate_info = vk::CommandBufferAllocateInfo::builder()
