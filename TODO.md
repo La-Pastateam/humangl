@@ -27,7 +27,7 @@
 
 ## **IV.** Ajouter une interface de modification des modèles
 
-* Rendre les variables codé en dur en tant que mut, utilisé par l'interface.
+* Rendre les variables codé en dur en tant que mut, utilisé par l'interfac.
 * afficher un menu
 * rendre selectionnable les objets afin de les modifier
 

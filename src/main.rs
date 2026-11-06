@@ -27,6 +27,8 @@ mod parser;
 mod utils;
 mod vulkan;
 
+mod ui_system;
+
 // ── Entry Point ───────────────────────────────────────────────────────────────
 
 fn main() -> Result<()> {
@@ -36,7 +38,7 @@ fn main() -> Result<()> {
 
     let event_loop = EventLoop::new()?;
     let window = WindowBuilder::new()
-        .with_title("Vulkan Tutorial (Rust)")
+        .with_title("HumanGL")
         .with_inner_size(LogicalSize::new(1024, 768))
         .build(&event_loop)?;
 
@@ -44,14 +46,32 @@ fn main() -> Result<()> {
 
     let mut app = unsafe { App::create(&window)? };
     let mut minimized = false;
+
     event_loop.run(move |event, elwt| {
+        platform.handle_event(imgui.io_mut(), &window, &event);
         match event {
+            Event::NewEvents(_) => {
+                let now = Instant::now();
+                imgui.io_mut().update_delta_time(now - last_frame);
+                last_frame = now;
+            }
             // Request a redraw when all events were processed.
-            Event::AboutToWait => window.request_redraw(),
+            Event::AboutToWait => {
+                platform
+                    .prepare_frame(imgui.io_mut(), &window)
+                    .expect("Failed to prepare frame");
+                window.request_redraw()
+            }
             Event::WindowEvent { event, .. } => match event {
                 // Render a frame if our Vulkan app is not being destroyed.
                 WindowEvent::RedrawRequested if !elwt.exiting() && !minimized => {
-                    if let Err(e) = unsafe { app.render(&window) } {
+                    let ui = imgui.frame();
+
+                    platform.prepare_render(ui, &window);
+
+                    let draw_data = imgui.render();
+
+                    if let Err(e) = unsafe { app.render(&window, draw_data) } {
                         error!("{e:#}");
                         process::exit(1);
                     }
@@ -72,15 +92,17 @@ fn main() -> Result<()> {
                 WindowEvent::KeyboardInput { event, .. }
                     if event.state == ElementState::Pressed =>
                 {
-                    match handle_input(event.physical_key, &mut app.data) {
-                        Ok(Signal::Nothing) => {}
-                        Ok(Signal::Exit) => {
-                            exit_app(&mut app, elwt);
-                        }
-                        Err(e) => {
-                            error!("Error has ocurred while operating input {e}");
-                        }
-                    };
+                    if !imgui.io().want_capture_keyboard {
+                        match handle_input(event.physical_key, &mut app.data) {
+                            Ok(Signal::Nothing) => {}
+                            Ok(Signal::Exit) => {
+                                exit_app(&mut app, elwt);
+                            }
+                            Err(e) => {
+                                error!("Error has ocurred while operating input {e}");
+                            }
+                        };
+                    }
                 }
                 _ => {}
             },

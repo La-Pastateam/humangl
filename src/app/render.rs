@@ -7,6 +7,7 @@ use std::ptr::copy_nonoverlapping as memcpy;
 use anyhow::{Result, anyhow};
 use vulkanalia::prelude::v1_0::*;
 use winit::window::Window;
+use imgui::DrawData;
 
 // NOTE: This trait was called `KhrSwapchainExtension` in versions of `vulkanalia` prior to `v0.31.0`.
 use vulkanalia::vk::KhrSwapchainExtensionDeviceCommands;
@@ -20,7 +21,7 @@ use crate::vulkan::sync::MAX_FRAMES_IN_FLIGHT;
 
 impl App {
     /// Renders a frame for our Vulkan app.
-    pub unsafe fn render(&mut self, window: &Window) -> Result<()> {
+    pub unsafe fn render(&mut self, window: &Window, ui_data: &DrawData) -> Result<()> {
         //TODO: Might be useful when we add or remove a limb
         // if self.new_model {
         //     self.new_model = false;
@@ -50,7 +51,7 @@ impl App {
 
         self.data.images_in_flight[image_index] = self.data.in_flight_fences[self.frame];
 
-        self.update_command_buffer(image_index)?;
+        self.update_command_buffer(image_index, ui_data)?;
         self.update_uniform_buffer(image_index)?;
 
         let wait_semaphores = &[self.data.image_available_semaphores[self.frame]];
@@ -116,7 +117,7 @@ impl App {
     //     Ok(())
     // }
 
-    unsafe fn update_command_buffer(&mut self, image_index: usize) -> Result<()> {
+    unsafe fn update_command_buffer(&mut self, image_index: usize, ui_data: &DrawData) -> Result<()> {
         let command_pool = self.data.command_pools[image_index];
         self.device
             .reset_command_pool(command_pool, vk::CommandPoolResetFlags::empty())?;
@@ -163,6 +164,8 @@ impl App {
             .collect::<Result<Vec<_>, _>>()?;
         self.device
             .cmd_execute_commands(command_buffer, &secondary_command_buffer[..]);
+
+        self.ui_system.record_commands(&self.device, command_buffer, ui_data)?;
 
         self.device.cmd_end_render_pass(command_buffer);
         self.device.end_command_buffer(command_buffer)?;
