@@ -24,7 +24,9 @@ use vulkanalia::vk::KhrSwapchainExtensionDeviceCommands;
 use crate::model::load_model;
 use crate::vulkan::attachment::{create_color_objects, create_depth_objects};
 use crate::vulkan::buffer::{create_index_buffer, create_uniform_buffers, create_vertex_buffer};
-use crate::vulkan::command::{create_command_buffers, create_command_pools};
+use crate::vulkan::command::{
+    create_command_buffers, create_command_pools, create_image_command_pools,
+};
 use crate::vulkan::descriptor::{
     create_descriptor_pool, create_descriptor_set_layout, create_descriptor_sets,
 };
@@ -73,6 +75,7 @@ impl App {
         create_descriptor_set_layout(&device, &mut data)?;
         create_pipeline(&device, &mut data)?;
         create_command_pools(&instance, &device, &mut data)?;
+        create_image_command_pools(&instance, &device, &mut data)?;
         create_color_objects(&instance, &device, &mut data)?;
         create_depth_objects(&instance, &device, &mut data)?;
         create_framebuffers(&device, &mut data)?;
@@ -111,22 +114,17 @@ impl App {
         create_uniform_buffers(&self.instance, &self.device, &mut self.data)?;
         create_descriptor_pool(&self.device, &mut self.data)?;
         create_descriptor_sets(&self.device, &mut self.data)?;
+        create_image_command_pools(&self.instance, &self.device, &mut self.data)?;
         create_command_buffers(&self.device, &mut self.data)?;
         Ok(())
     }
 
     /// Destroys our Vulkan app.
     pub unsafe fn destroy(&mut self) {
-        // ─── BUG : Must wait semaphore to be disregarded ───────────────
         self.device.device_wait_idle().unwrap();
-        // ───
         self.device.destroy_buffer(self.data.index_buffer, None);
         self.device.free_memory(self.data.index_buffer_memory, None);
         self.destroy_swapchain();
-        self.data
-            .command_pools
-            .iter()
-            .for_each(|p| self.device.destroy_command_pool(*p, None));
         self.device
             .destroy_descriptor_set_layout(self.data.descriptor_set_layout, None);
         self.device.destroy_buffer(self.data.vertex_buffer, None);
@@ -190,5 +188,17 @@ impl App {
             .iter()
             .for_each(|v| self.device.destroy_image_view(*v, None));
         self.device.destroy_swapchain_khr(self.data.swapchain, None);
+        self.data
+            .command_pools
+            .iter()
+            .for_each(|p| self.device.destroy_command_pool(*p, None));
+        self.data.command_pools.clear();
+        self.data.command_buffers.clear();
+        self.data.secondary_command_buffers.clear();
+        self.data
+            .render_finished_semaphores
+            .iter()
+            .for_each(|s| self.device.destroy_semaphore(*s, None));
+        self.data.render_finished_semaphores.clear();
     }
 }
