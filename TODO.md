@@ -14,7 +14,8 @@
 
 ## II. Créer des modèles à partir d'une focntion -> tcros
 
-* Créer une structure "Membre" -> ObjModel, ~~points d'accroche~~ matrice transformation homogène ✅
+* Créer une structure ~~"Membre"~~ "Bone" -> ObjModel, ~~points d'accroche~~ matrice transformation homogène ✅
+* Créer une structure "Skeleton" -> Vecteur de struct Bone.✅
 * fonction qui crée un modèle à partir de sa taille (l, L, h)
 * Supprimer la gestion des modèles par fichier local
 * fonction qui accroche ce modèle à un autre objet/position de départ.
