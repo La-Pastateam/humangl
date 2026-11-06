@@ -1,11 +1,38 @@
 use std::f32::consts::PI;
-use std::ops::{Div, Index, IndexMut, Mul, Sub};
+use std::ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Sub};
 
 // ── Type ─────────────────────────────────────────────────────────────────
 
 pub type Vec2 = Vector2;
 pub type Vec3 = Vector3;
 pub type Mat4 = Matrix4;
+
+// ── Point 2 ─────────────────────────────────────────────────────────────────
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug)]
+pub struct Point2 {
+    pub x: f32,
+    pub y: f32,
+}
+
+impl Sub<Point2> for Point2 {
+    type Output = Vector2;
+
+    fn sub(self, rhs: Point2) -> Self::Output {
+        vec2(self.x - rhs.x, self.y - rhs.y)
+    }
+}
+
+impl Point2 {
+    fn dot(&self, rhs: Vector2) -> f32 {
+        self.x * rhs.x + self.y * rhs.y
+    }
+}
+
+pub const fn point2(x: f32, y: f32) -> Point2 {
+    Point2 { x, y }
+}
 
 // ── Point 3 ─────────────────────────────────────────────────────────────────
 
@@ -51,7 +78,7 @@ pub const fn vec2(x: f32, y: f32) -> Vector2 {
 // ── Vector 3 ─────────────────────────────────────────────────────────────────
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub struct Vector3 {
     pub x: f32,
     pub y: f32,
@@ -59,6 +86,14 @@ pub struct Vector3 {
 }
 
 impl Vector3 {
+    pub fn zero() -> Vector3 {
+        Vector3 {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+        }
+    }
+
     pub fn magnitude(&self) -> f32 {
         (self.x * self.x + self.y * self.y + self.z * self.z).sqrt()
     }
@@ -87,6 +122,70 @@ impl Vector3 {
             y: self.z * rhs.x - self.x * rhs.z,
             z: self.x * rhs.y - self.y * rhs.x,
         }
+    }
+
+    pub fn is_zero(&self) -> bool {
+        *self == Vector3::zero()
+    }
+}
+
+impl Index<usize> for Vector3 {
+    type Output = f32;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        match index {
+            0 => &self.x,
+            1 => &self.y,
+            2 => &self.z,
+            _ => panic!("index out of bounds"),
+        }
+    }
+}
+
+impl IndexMut<usize> for Vector3 {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        match index {
+            0 => &mut self.x,
+            1 => &mut self.y,
+            2 => &mut self.z,
+            _ => panic!("index out of bounds"),
+        }
+    }
+}
+
+impl Sub<Vector3> for Vector3 {
+    type Output = Vector3;
+    fn sub(self, rhs: Vector3) -> Vector3 {
+        vec3(self.x - rhs.x, self.y - rhs.y, self.z - rhs.z)
+    }
+}
+
+impl Add<Vector3> for Vector3 {
+    type Output = Vector3;
+    fn add(self, rhs: Vector3) -> Vector3 {
+        vec3(self.x + rhs.x, self.y + rhs.y, self.z + rhs.z)
+    }
+}
+
+impl AddAssign<Vector3> for Vector3 {
+    fn add_assign(&mut self, rhs: Vector3) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+        self.z += rhs.z;
+    }
+}
+
+impl Add<f32> for Vector3 {
+    type Output = Vector3;
+    fn add(self, rhs: f32) -> Vector3 {
+        vec3(self.x + rhs, self.y + rhs, self.z + rhs)
+    }
+}
+
+impl Mul<f32> for Vector3 {
+    type Output = Vector3;
+    fn mul(self, rhs: f32) -> Vector3 {
+        vec3(self.x * rhs, self.y * rhs, self.z * rhs)
     }
 }
 
@@ -188,6 +287,15 @@ impl Matrix4 {
         }
     }
 
+    pub const fn identity() -> Matrix4 {
+        Matrix4::from_cols(
+            vec4(1.0, 0.0, 0.0, 0.0),
+            vec4(0.0, 1.0, 0.0, 0.0),
+            vec4(0.0, 0.0, 1.0, 0.0),
+            vec4(0.0, 0.0, 0.0, 1.0),
+        )
+    }
+
     pub fn from_translation(v: Vector3) -> Matrix4 {
         Matrix4::new(
             1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, v.x, v.y, v.z, 1.0,
@@ -224,9 +332,7 @@ impl Matrix4 {
     }
 
     pub fn look_to_rh(eye: Point3, dir: Vector3, up: Vector3) -> Matrix4 {
-        let f = dir.normalize();
-        let s = f.cross(up).normalize();
-        let u = s.cross(f);
+        let (f, s, u) = camera_basis(dir, up);
 
         mat4(
             vec4(s.x, u.x, -f.x, 0.0),
@@ -458,4 +564,14 @@ pub fn perspective<A: Into<Rad>>(fovy: A, aspect: f32, near: f32, far: f32) -> M
         far,
     }
     .into()
+}
+
+// ── Helper Functions ─────────────────────────────────────────────────────────────────
+
+pub fn camera_basis(dir: Vector3, up: Vector3) -> (Vector3, Vector3, Vector3) {
+    let f = dir.normalize();
+    let s = f.cross(up).normalize();
+    let u = s.cross(f);
+
+    (f, s, u)
 }
