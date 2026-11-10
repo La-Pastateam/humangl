@@ -138,7 +138,7 @@ pub unsafe fn create_pipeline(device: &Device, data: &mut AppData) -> Result<()>
 
 // ── Shaders ─────────────────────────────────────────────────────────────────
 
-unsafe fn create_shader_module(device: &Device, bytecode: &[u8]) -> Result<vk::ShaderModule> {
+pub unsafe fn create_shader_module(device: &Device, bytecode: &[u8]) -> Result<vk::ShaderModule> {
     let bytecode = Bytecode::new(bytecode).unwrap();
     let info = vk::ShaderModuleCreateInfo::builder()
         .code(bytecode.code())

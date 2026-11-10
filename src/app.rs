@@ -35,6 +35,7 @@ use crate::vulkan::pipeline::create_pipeline;
 use crate::vulkan::render_pass::create_render_pass;
 use crate::vulkan::swapchain::{create_swapchain, create_swapchain_image_views};
 use crate::vulkan::sync::create_sync_objects;
+use crate::ui_system::UiSystem;
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -43,7 +44,7 @@ const DEFAULT_MODEL: &str = "resources/model/42.obj";
 // ── App ───────────────────────────────────────────────────────────────────────
 
 /// Our Vulkan app.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct App {
     entry: Entry,
     instance: Instance,
@@ -54,6 +55,7 @@ pub struct App {
     pub new_model: bool,
     start: Instant,
     models: usize,
+    pub ui_system: UiSystem,
 }
 
 impl App {
@@ -84,7 +86,7 @@ impl App {
         create_descriptor_sets(&device, &mut data)?;
         create_command_buffers(&device, &mut data)?;
         create_sync_objects(&device, &mut data)?;
-
+        let ui_system = unsafe {UiSystem::new(&instance, window, &device, &mut data)};
         Ok(Self {
             entry,
             instance,
@@ -95,6 +97,7 @@ impl App {
             new_model: false,
             start: Instant::now(),
             models: 1,
+            ui_system: ui_system?,
         })
     }
 
@@ -120,6 +123,7 @@ impl App {
         // ─── BUG : Must wait semaphore to be disregarded ───────────────
         self.device.device_wait_idle().unwrap();
         // ───
+        self.ui_system.destroy(&self.device);
         self.device.destroy_buffer(self.data.index_buffer, None);
         self.device.free_memory(self.data.index_buffer_memory, None);
         self.destroy_swapchain();

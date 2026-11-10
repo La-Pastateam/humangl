@@ -9,8 +9,9 @@
 use winit::dpi::LogicalSize;
 use winit::event::ElementState;
 use winit::event::{Event, WindowEvent};
-use winit::event_loop::{EventLoop, EventLoopWindowTarget};
-use winit::window::WindowBuilder;
+use winit::event_loop::{EventLoop, ActiveEventLoop};
+use winit::window::Window;
+use std::time::Instant;
 
 use anyhow::Result;
 use log::*;
@@ -37,41 +38,36 @@ fn main() -> Result<()> {
     // Window
 
     let event_loop = EventLoop::new()?;
-    let window = WindowBuilder::new()
+    let window_attributes = Window::default_attributes()
         .with_title("HumanGL")
-        .with_inner_size(LogicalSize::new(1024, 768))
-        .build(&event_loop)?;
+        .with_inner_size(LogicalSize::new(1024, 768));
 
+    let window = event_loop.create_window(window_attributes)?;
     // App
 
     let mut app = unsafe { App::create(&window)? };
     let mut minimized = false;
+    let mut last_frame = Instant::now();
 
     event_loop.run(move |event, elwt| {
-        platform.handle_event(imgui.io_mut(), &window, &event);
+        app.ui_system.platform.handle_event(app.ui_system.imgui.io_mut(), &window, &event);
         match event {
             Event::NewEvents(_) => {
                 let now = Instant::now();
-                imgui.io_mut().update_delta_time(now - last_frame);
+                app.ui_system.imgui.io_mut().update_delta_time(now - last_frame);
                 last_frame = now;
             }
             // Request a redraw when all events were processed.
             Event::AboutToWait => {
-                platform
-                    .prepare_frame(imgui.io_mut(), &window)
+                app.ui_system.platform
+                    .prepare_frame(app.ui_system.imgui.io_mut(), &window)
                     .expect("Failed to prepare frame");
                 window.request_redraw()
             }
             Event::WindowEvent { event, .. } => match event {
                 // Render a frame if our Vulkan app is not being destroyed.
                 WindowEvent::RedrawRequested if !elwt.exiting() && !minimized => {
-                    let ui = imgui.frame();
-
-                    platform.prepare_render(ui, &window);
-
-                    let draw_data = imgui.render();
-
-                    if let Err(e) = unsafe { app.render(&window, draw_data) } {
+                    if let Err(e) = unsafe { app.render(&window) } {
                         error!("{e:#}");
                         process::exit(1);
                     }
@@ -92,7 +88,7 @@ fn main() -> Result<()> {
                 WindowEvent::KeyboardInput { event, .. }
                     if event.state == ElementState::Pressed =>
                 {
-                    if !imgui.io().want_capture_keyboard {
+                    if !app.ui_system.imgui.io().want_capture_keyboard {
                         match handle_input(event.physical_key, &mut app.data) {
                             Ok(Signal::Nothing) => {}
                             Ok(Signal::Exit) => {
@@ -113,7 +109,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn exit_app(app: &mut App, elwt: &EventLoopWindowTarget<()>) {
+fn exit_app(app: &mut App, elwt: &ActiveEventLoop) {
     elwt.exit();
     unsafe {
         app.destroy();

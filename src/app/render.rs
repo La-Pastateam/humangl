@@ -21,7 +21,7 @@ use crate::vulkan::sync::MAX_FRAMES_IN_FLIGHT;
 
 impl App {
     /// Renders a frame for our Vulkan app.
-    pub unsafe fn render(&mut self, window: &Window, ui_data: &DrawData) -> Result<()> {
+    pub unsafe fn render(&mut self, window: &Window) -> Result<()> {
         //TODO: Might be useful when we add or remove a limb
         // if self.new_model {
         //     self.new_model = false;
@@ -51,7 +51,21 @@ impl App {
 
         self.data.images_in_flight[image_index] = self.data.in_flight_fences[self.frame];
 
-        self.update_command_buffer(image_index, ui_data)?;
+
+        // Render UI
+        let ui = self.ui_system.imgui.frame();
+
+        // Prepare window
+        ui.window("Window params")
+            .size([300.0, 100.0], imgui::Condition::FirstUseEver)
+            .build(|| {
+                ui.text("hiyahiyaho")
+            });
+
+        let draw_data = self.ui_system.imgui.render();
+
+
+        self.update_command_buffer(image_index, draw_data)?;
         self.update_uniform_buffer(image_index)?;
 
         let wait_semaphores = &[self.data.image_available_semaphores[self.frame]];
@@ -165,7 +179,7 @@ impl App {
         self.device
             .cmd_execute_commands(command_buffer, &secondary_command_buffer[..]);
 
-        self.ui_system.record_commands(&self.device, command_buffer, ui_data)?;
+        self.ui_system.commands(&self.device, command_buffer, ui_data, self.data.swapchain_extent)?;
 
         self.device.cmd_end_render_pass(command_buffer);
         self.device.end_command_buffer(command_buffer)?;
