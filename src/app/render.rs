@@ -13,9 +13,11 @@ use imgui::DrawData;
 use vulkanalia::vk::KhrSwapchainExtensionDeviceCommands;
 
 use super::App;
+use crate::ui_system::UiSystem;
 use crate::utils::math::{self, Deg, Mat4, point3, vec3};
 use crate::vulkan::buffer::UniformBufferObject;
 use crate::vulkan::sync::MAX_FRAMES_IN_FLIGHT;
+use crate::app::AppData;
 
 // ── Render ────────────────────────────────────────────────────────────────────
 
@@ -65,7 +67,14 @@ impl App {
         let draw_data = self.ui_system.imgui.render();
 
 
-        self.update_command_buffer(image_index, draw_data)?;
+        Self::update_command_buffer(
+            &self.device,
+            &self.data,
+            &mut self.ui_system,
+            image_index,
+            self.models,
+            draw_data
+        )?;
         self.update_uniform_buffer(image_index)?;
 
         let wait_semaphores = &[self.data.image_available_semaphores[self.frame]];
@@ -131,21 +140,28 @@ impl App {
     //     Ok(())
     // }
 
-    unsafe fn update_command_buffer(&mut self, image_index: usize, ui_data: &DrawData) -> Result<()> {
-        let command_pool = self.data.command_pools[image_index];
-        self.device
+    unsafe fn update_command_buffer(
+        device: &Device,
+        data: &AppData,
+        ui_system: &UiSystem,
+        image_index: usize,
+        models: usize,
+        ui_data: &DrawData,
+    ) -> Result<()> {
+        let command_pool = data.command_pools[image_index];
+        device
             .reset_command_pool(command_pool, vk::CommandPoolResetFlags::empty())?;
 
-        let command_buffer = self.data.command_buffers[image_index];
+        let command_buffer = data.command_buffers[image_index];
 
         let info = vk::CommandBufferBeginInfo::builder()
             .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
 
-        self.device.begin_command_buffer(command_buffer, &info)?;
+        device.begin_command_buffer(command_buffer, &info)?;
 
         let render_area = vk::Rect2D::builder()
             .offset(vk::Offset2D::default())
-            .extent(self.data.swapchain_extent);
+            .extent(data.swapchain_extent);
 
         let color_clear_value = vk::ClearValue {
             color: vk::ClearColorValue {
@@ -162,27 +178,27 @@ impl App {
 
         let clear_values = &[color_clear_value, depth_clear_value];
         let info = vk::RenderPassBeginInfo::builder()
-            .render_pass(self.data.render_pass)
-            .framebuffer(self.data.framebuffers[image_index])
+            .render_pass(data.render_pass)
+            .framebuffer(data.framebuffers[image_index])
             .render_area(render_area)
             .clear_values(clear_values);
 
-        self.device.cmd_begin_render_pass(
+        device.cmd_begin_render_pass(
             command_buffer,
             &info,
             vk::SubpassContents::SECONDARY_COMMAND_BUFFERS,
         );
 
-        let secondary_command_buffer = (0..self.models)
+        let secondary_command_buffer = (0..models)
             .map(|i| self.update_secondary_command_buffer(image_index, 0))
             .collect::<Result<Vec<_>, _>>()?;
-        self.device
+        device
             .cmd_execute_commands(command_buffer, &secondary_command_buffer[..]);
 
-        self.ui_system.commands(&self.device, command_buffer, ui_data, self.data.swapchain_extent)?;
+        ui_system.commands(&device, command_buffer, ui_data, data.swapchain_extent)?;
 
-        self.device.cmd_end_render_pass(command_buffer);
-        self.device.end_command_buffer(command_buffer)?;
+        device.cmd_end_render_pass(command_buffer);
+        device.end_command_buffer(command_buffer)?;
 
         Ok(())
     }
