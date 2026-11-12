@@ -7,7 +7,6 @@ use std::ptr::copy_nonoverlapping as memcpy;
 use anyhow::{Result, anyhow};
 use vulkanalia::prelude::v1_0::*;
 use winit::window::Window;
-use imgui::DrawData;
 
 // NOTE: This trait was called `KhrSwapchainExtension` in versions of `vulkanalia` prior to `v0.31.0`.
 use vulkanalia::vk::KhrSwapchainExtensionDeviceCommands;
@@ -62,10 +61,7 @@ impl App {
                 ui.text("hiyahiyaho")
             });
 
-        let draw_data = self.ui_system.imgui.render();
-
-
-        self.update_command_buffer(image_index, draw_data)?;
+        self.update_command_buffer(image_index)?;
         self.update_uniform_buffer(image_index)?;
 
         let wait_semaphores = &[self.data.image_available_semaphores[self.frame]];
@@ -131,7 +127,7 @@ impl App {
     //     Ok(())
     // }
 
-    unsafe fn update_command_buffer(&mut self, image_index: usize, ui_data: &DrawData) -> Result<()> {
+    unsafe fn update_command_buffer(&mut self, image_index: usize) -> Result<()> {
         let command_pool = self.data.command_pools[image_index];
         self.device
             .reset_command_pool(command_pool, vk::CommandPoolResetFlags::empty())?;
@@ -179,7 +175,15 @@ impl App {
         self.device
             .cmd_execute_commands(command_buffer, &secondary_command_buffer[..]);
 
-        self.ui_system.commands(&self.device, command_buffer, ui_data, self.data.swapchain_extent)?;
+        let ui_secondary_command_buffer = self.ui_system.update_ui_secondary_command_buffer(
+            &self.instance,
+            &self.device,
+            &mut self.data,
+            image_index,
+        )?;
+
+        self.device
+            .cmd_execute_commands(command_buffer, &[ui_secondary_command_buffer]);
 
         self.device.cmd_end_render_pass(command_buffer);
         self.device.end_command_buffer(command_buffer)?;
