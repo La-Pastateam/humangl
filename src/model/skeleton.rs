@@ -20,6 +20,12 @@ impl Skeleton {
     pub const fn from_bones(label: String, bones: Vec<Bone>) -> Self {
         Skeleton { label, bones }
     }
+
+    pub const fn human(label: String) -> Self {
+        todo!();
+        // TODO: Créer les os avec les fonctions associées - HEAD, TORSO, 2ARMS, 2 LEGS.
+        // + Ajouter les positions des bones.
+    }
 }
 
 // ── Methods ─────────────────────────────────────────────────────────────────

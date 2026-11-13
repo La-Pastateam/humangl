@@ -10,6 +10,20 @@ pub struct Bone {
     model: ObjModel,
 }
 
+// ── Associated Functions ─────────────────────────────────────────────────────────────────
+
+impl Bone {
+    pub fn new(label: String, id: usize, model: ObjModel) -> Self {
+        Bone {
+            label,
+            id,
+            parent_id: None,
+            transform: Matrix4::identity(),
+            model: model,
+        }
+    }
+}
+
 // ── Methods ─────────────────────────────────────────────────────────────────
 
 impl Bone {
