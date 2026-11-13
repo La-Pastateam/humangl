@@ -6,7 +6,7 @@
 #    By: tcros <tcros@student.42.fr>                +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/06/16 11:49:09 by tcros             #+#    #+#              #
-#    Updated: 2026/10/27 17:34:33 by nbacconn         ###   ########.fr        #
+#    Updated: 2026/11/13 12:17:19 by nbacconn         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 ### VARIABLES ###
@@ -118,7 +118,7 @@ help:
 	@echo "  make re MODE=release"
 
 clean:
-	@$(RUNNER) $(CMPL) clean
+	$(CMPL) clean
 	@printf "$(ORANGE)[CLEAN] Fichiers target supprimés.$(NC)\n"
 
 fclean: clean image-clean
