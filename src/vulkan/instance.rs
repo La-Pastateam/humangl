@@ -6,6 +6,7 @@ use anyhow::{Result, anyhow};
 use log::*;
 use vulkanalia::Version;
 use vulkanalia::prelude::v1_0::*;
+use vulkanalia::vk::ExtDebugUtilsExtensionInstanceCommands;
 use vulkanalia::window as vk_window;
 use winit::window::Window;
 
@@ -51,7 +52,7 @@ pub unsafe fn create_instance(
     data: &mut AppData,
 ) -> Result<Instance> {
     let application_info = vk::ApplicationInfo::builder()
-        .application_name(b"Vulkan Tutorial\0")
+        .application_name(b"HumanGL\0")
         .application_version(vk::make_version(1, 0, 0))
         .engine_name(b"No Engine\0")
         .engine_version(vk::make_version(1, 0, 0))
@@ -115,6 +116,10 @@ pub unsafe fn create_instance(
     }
 
     let instance = entry.create_instance(&info, None)?;
+
+    if VALIDATION_ENABLED {
+        data.messenger = instance.create_debug_utils_messenger_ext(&debug_info, None)?;
+    }
 
     Ok(instance)
 }

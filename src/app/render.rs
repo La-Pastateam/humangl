@@ -30,15 +30,18 @@ impl App {
         self.device
             .wait_for_fences(&[self.data.in_flight_fences[self.frame]], true, u64::MAX)?;
 
-        let image_index = self
-            .device
-            .acquire_next_image_khr(
-                self.data.swapchain,
-                u64::MAX,
-                self.data.image_available_semaphores[self.frame],
-                vk::Fence::null(),
-            )?
-            .0 as usize;
+        let result = self.device.acquire_next_image_khr(
+            self.data.swapchain,
+            u64::MAX,
+            self.data.image_available_semaphores[self.frame],
+            vk::Fence::null(),
+        );
+
+        let image_index = match result {
+            Ok((image_index, _)) => image_index as usize,
+            Err(vk::ErrorCode::OUT_OF_DATE_KHR) => return self.recreate_swapchain(window),
+            Err(e) => return Err(anyhow!(e)),
+        };
 
         if !self.data.images_in_flight[image_index].is_null() {
             self.device.wait_for_fences(
@@ -196,9 +199,6 @@ impl App {
         image_index: usize,
         model_index: usize,
     ) -> Result<vk::CommandBuffer> {
-        self.data
-            .secondary_command_buffers
-            .resize_with(image_index + 1, Vec::new);
         let command_buffers = &mut self.data.secondary_command_buffers[image_index];
         while model_index >= command_buffers.len() {
             let allocate_info = vk::CommandBufferAllocateInfo::builder()

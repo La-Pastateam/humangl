@@ -14,25 +14,44 @@
 
 ## II. Créer des modèles à partir d'une focntion -> tcros
 
-* Créer une structure "Membre" -> ObjModel, points d'accroche
-* fonction qui crée un modèle à partir de sa taille (l, L, h)
-* Supprimer la gestion des modèles par fichier local
+### A. Bones
+
+* Créer une structure ~"Membre"~ "Bone" -> ObjModel, ~~points d'accroche~~ matrice transformation homogène ✅
+* Modifier ObjModel pour l'optimiser pour les Bones
+* fonction qui crée un modèle à partir de sa taille (l, `L, h)
 * fonction qui accroche ce modèle à un autre objet/position de départ.
 
-## **III.** Préparer la Mutant Stack (Matrice Stack) -> nbacconn
+### B. Skeleton
+
+* Créer une structure "Skeleton" -> Vecteur de struct Bone.✅
+* Ajouter la fonction Human -> Skeleton de 8 bones : Head, Torso, 2 arms (with 1 upper arm and forearm), 2 legs (thigh + lower part)
+
+### C. Vérif all
+
+* Ajouter les fonctions utilitaires de Bones et Skeleton
+
+## **III.** Rendre Graphique le skeleton
+
+* Supprimer la gestion des modèles par fichier local
+* Ajouter le model skeleton à la swapchain.
+*
+
+## **IV.** Préparer la Mutant Stack (Matrice Stack) -> nbacconn
 
 * Créer une matrice stack afin de déterminer les positions de points d'accroche entre les membres
 * fonction permettant de déplacer un membre "enfant". Devra modifier aussi les membres "parents"
 * fonction qui fait une translation entre 2 points
 
-## **IV.** Ajouter une interface de modification des modèles
+## **V.** Ajouter une interface de modification des modèles
 
 * Rendre les variables codé en dur en tant que mut, utilisé par l'interfac.
 * afficher un menu
 * rendre selectionnable les objets afin de les modifier
 
-## **V.** Finitions
+## **VI.** Finitions
+
 * Remettre le code bien dans des dossiers (vulkan par exemple)
 
 ## **INFO**
+
 * watch -n1 "grep VmRSS /proc/$(pidof humangl)/status"  pour tester la mise en VRAM du projet, pour les fuites mémoires.
