@@ -6,7 +6,7 @@
 #    By: tcros <tcros@student.42.fr>                +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/06/16 11:49:09 by tcros             #+#    #+#              #
-#    Updated: 2026/11/13 12:17:19 by nbacconn         ###   ########.fr        #
+#    Updated: 2026/11/13 12:22:13 by nbacconn         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 ### VARIABLES ###
@@ -18,6 +18,7 @@ IMAGE_NAME = rust-vulkan-env
 RUNNER   = ./podman/run.sh
 CMPL     = cargo
 MODE     ?= dev
+UI_SAVE  = imgui.ini
 
 ifeq ($(MODE),release)
     RFLAG    = --release
@@ -123,6 +124,7 @@ clean:
 
 fclean: clean image-clean
 	@rm -f $(EXEC)
+	@rm -f $(UI_SAVE)
 	@printf "$(RED)[FCLEAN] binaire supprimé.$(NC)\n"
 
 re: fclean all
