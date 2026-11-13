@@ -565,7 +565,7 @@ impl UiSystem {
                                 let clip_min_y = clip_rect[1] - clip_offset[1] * clip_scale[1];
                                 let clip_max_x = clip_rect[2] - clip_offset[0] * clip_scale[0];
                                 let clip_max_y = clip_rect[3] - clip_offset[1] * clip_scale[1];
- 
+
                                 // Check if we need to draw this window
                                 if clip_max_x > clip_min_x && clip_max_y > clip_min_y {
                                     // Make sure each value stays on the screen size
@@ -615,8 +615,9 @@ impl UiSystem {
 
 
     pub unsafe fn destroy(&mut self, device: &Device) {
-        device.destroy_pipeline(self.pipeline, None);
-        device.destroy_pipeline_layout(self.pipeline_layout, None);
+        //device.destroy_pipeline(self.pipeline, None);
+        //device.destroy_pipeline_layout(self.pipeline_layout, None);
+        //
         device.destroy_buffer(self.vertex_buffer, None);
         device.free_memory(self.vertex_buffer_memory, None);
         device.destroy_buffer(self.index_buffer, None);
@@ -627,5 +628,149 @@ impl UiSystem {
         device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
         device.destroy_sampler(self.font_sampler, None);
         device.destroy_descriptor_pool(self.descriptor_pool, None);
+    }
+
+    pub unsafe fn recreate_ui_swapchain(&mut self, device: &Device, data: &AppData) -> Result<()> {
+        // Define Push Constants
+        let push_constant_ranges = &[vk::PushConstantRange::builder()
+            .stage_flags(vk::ShaderStageFlags::VERTEX)
+            .offset(0)
+            .size(16)
+            .build()];
+
+        // Create pipeline layout and bind push constants
+        let set_layouts = &[self.descriptor_set_layout];
+        let pipeline_layout_info = vk::PipelineLayoutCreateInfo::builder()
+            .set_layouts(set_layouts)
+            .push_constant_ranges(push_constant_ranges);
+
+        self.pipeline_layout = device.create_pipeline_layout(&pipeline_layout_info, None)?;
+
+        // Describe struct imgui::DrawVert
+        let binding_descriptions = &[vk::VertexInputBindingDescription::builder()
+            .binding(0)
+            .stride(std::mem::size_of::<imgui::DrawVert>() as u32)
+            .input_rate(vk::VertexInputRate::VERTEX)
+            .build()];
+
+        let attribute_descriptions = &[
+            vk::VertexInputAttributeDescription::builder()
+                .binding(0)
+                .location(0)
+                .format(vk::Format::R32G32_SFLOAT)
+                .offset(0)
+                .build(),
+            vk::VertexInputAttributeDescription::builder()
+                .binding(0)
+                .location(1)
+                .format(vk::Format::R32G32_SFLOAT)
+                .offset(8)
+                .build(),
+            vk::VertexInputAttributeDescription::builder()
+                .binding(0)
+                .location(2)
+                .format(vk::Format::R8G8B8A8_UNORM)
+                .offset(16)
+                .build(),
+        ];
+
+        let vertex_input_info = vk::PipelineVertexInputStateCreateInfo::builder()
+            .vertex_binding_descriptions(binding_descriptions)
+            .vertex_attribute_descriptions(attribute_descriptions);
+
+
+        // Shaders loading and config
+        let vert_shader_code = include_bytes!("../shaders/imgui.vert.spv");
+        let frag_shader_code = include_bytes!("../shaders/imgui.frag.spv");
+
+        let vert_shader_module = create_shader_module(device, vert_shader_code)?;
+        let frag_shader_module = create_shader_module(device, frag_shader_code)?;
+
+        let vert_stage = vk::PipelineShaderStageCreateInfo::builder()
+            .stage(vk::ShaderStageFlags::VERTEX)
+            .module(vert_shader_module)
+            .name(b"main\0");
+
+        let frag_stage = vk::PipelineShaderStageCreateInfo::builder()
+            .stage(vk::ShaderStageFlags::FRAGMENT)
+            .module(frag_shader_module)
+            .name(b"main\0");
+
+        let shader_stages = &[vert_stage.build(), frag_stage.build()];
+
+
+        let input_assembly = vk::PipelineInputAssemblyStateCreateInfo::builder()
+            .topology(vk::PrimitiveTopology::TRIANGLE_LIST)
+            .primitive_restart_enable(false);
+
+        let dynamic_states = &[vk::DynamicState::VIEWPORT, vk::DynamicState::SCISSOR];
+        let dynamic_state = vk::PipelineDynamicStateCreateInfo::builder()
+            .dynamic_states(dynamic_states);
+
+        let viewport_state = vk::PipelineViewportStateCreateInfo::builder()
+            .viewport_count(1)
+            .scissor_count(1);
+
+        let rasterizer = vk::PipelineRasterizationStateCreateInfo::builder()
+            .depth_clamp_enable(false)
+            .rasterizer_discard_enable(false)
+            .polygon_mode(vk::PolygonMode::FILL)
+            .line_width(1.0)
+            .cull_mode(vk::CullModeFlags::NONE)
+            .front_face(vk::FrontFace::CLOCKWISE);
+
+        let multisampling = vk::PipelineMultisampleStateCreateInfo::builder()
+            .sample_shading_enable(false)
+            .rasterization_samples(data.msaa_samples);
+
+        let depth_stencil = vk::PipelineDepthStencilStateCreateInfo::builder()
+            .depth_test_enable(false)
+            .depth_write_enable(false)
+            .depth_compare_op(vk::CompareOp::ALWAYS);
+
+        let color_blend_attachment = &[vk::PipelineColorBlendAttachmentState::builder()
+            .blend_enable(true)
+            .src_color_blend_factor(vk::BlendFactor::SRC_ALPHA)
+            .dst_color_blend_factor(vk::BlendFactor::ONE_MINUS_SRC_ALPHA)
+            .color_blend_op(vk::BlendOp::ADD)
+            .src_alpha_blend_factor(vk::BlendFactor::ONE)
+            .dst_alpha_blend_factor(vk::BlendFactor::ONE_MINUS_SRC_ALPHA)
+            .alpha_blend_op(vk::BlendOp::ADD)
+            .color_write_mask(
+                vk::ColorComponentFlags::R
+                | vk::ColorComponentFlags::G
+                | vk::ColorComponentFlags::B
+                | vk::ColorComponentFlags::A)
+            .build()
+        ];
+
+        let color_blending = vk::PipelineColorBlendStateCreateInfo::builder()
+            .logic_op_enable(false)
+            .attachments(color_blend_attachment);
+
+        let pipeline_info = vk::GraphicsPipelineCreateInfo::builder()
+            .stages(shader_stages)
+            .vertex_input_state(&vertex_input_info)
+            .input_assembly_state(&input_assembly)
+            .viewport_state(&viewport_state)
+            .rasterization_state(&rasterizer)
+            .multisample_state(&multisampling)
+            .depth_stencil_state(&depth_stencil)
+            .color_blend_state(&color_blending)
+            .dynamic_state(&dynamic_state)
+            .layout(self.pipeline_layout)
+            .render_pass(data.render_pass)
+            .subpass(0);
+
+        self.pipeline = device.create_graphics_pipelines(
+            vk::PipelineCache::null(),
+            &[pipeline_info],
+            None
+        )?.0[0];
+
+        device.destroy_shader_module(vert_shader_module, None);
+        device.destroy_shader_module(frag_shader_module, None);
+
+        Ok(())
     }
 }

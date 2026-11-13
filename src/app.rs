@@ -117,12 +117,27 @@ impl App {
         create_color_objects(&self.instance, &self.device, &mut self.data)?;
         create_depth_objects(&self.instance, &self.device, &mut self.data)?;
         create_framebuffers(&self.device, &mut self.data)?;
+
+
+
+
         create_uniform_buffers(&self.instance, &self.device, &mut self.data)?;
         create_descriptor_pool(&self.device, &mut self.data)?;
         create_descriptor_sets(&self.device, &mut self.data)?;
         create_image_command_pools(&self.instance, &self.device, &mut self.data)?;
         create_command_buffers(&self.device, &mut self.data)?;
         create_swapchain_sync_objects(&self.device, &mut self.data)?;
+
+
+
+
+        //create_uniform_buffers(&self.instance, &self.device, &mut self.data)?;
+        //create_descriptor_pool(&self.device, &mut self.data)?;
+        //create_descriptor_sets(&self.device, &mut self.data)?;
+        //create_command_buffers(&self.device, &mut self.data)?;
+
+        // Recreate UI swapchain
+        self.ui_system.recreate_ui_swapchain(&self.device, &self.data)?;
         Ok(())
     }
 
@@ -135,6 +150,30 @@ impl App {
         self.device.destroy_buffer(self.data.index_buffer, None);
         self.device.free_memory(self.data.index_buffer_memory, None);
         self.destroy_swapchain();
+
+
+        //self.device
+        //    .destroy_descriptor_pool(self.data.descriptor_pool, None);
+        //self.data
+        //    .uniform_buffers
+        //    .iter()
+        //    .for_each(|b| self.device.destroy_buffer(*b, None));
+        //self.data
+        //    .uniform_buffers_memory
+        //    .iter()
+        //    .for_each(|m| self.device.free_memory(*m, None));
+        //
+        //
+        //self.data
+        //    .command_pools
+        //    .iter()
+        //    .for_each(|p| self.device.destroy_command_pool(*p, None));
+
+
+
+
+
+
         self.device
             .destroy_descriptor_set_layout(self.data.descriptor_set_layout, None);
         self.device.destroy_buffer(self.data.vertex_buffer, None);
@@ -175,16 +214,6 @@ impl App {
             .destroy_image_view(self.data.depth_image_view, None);
         self.device.free_memory(self.data.depth_image_memory, None);
         self.device.destroy_image(self.data.depth_image, None);
-        self.device
-            .destroy_descriptor_pool(self.data.descriptor_pool, None);
-        self.data
-            .uniform_buffers
-            .iter()
-            .for_each(|b| self.device.destroy_buffer(*b, None));
-        self.data
-            .uniform_buffers_memory
-            .iter()
-            .for_each(|m| self.device.free_memory(*m, None));
         self.data
             .framebuffers
             .iter()
@@ -198,6 +227,11 @@ impl App {
             .iter()
             .for_each(|v| self.device.destroy_image_view(*v, None));
         self.device.destroy_swapchain_khr(self.data.swapchain, None);
+
+
+
+
+
         self.data
             .command_pools
             .iter()
@@ -210,5 +244,13 @@ impl App {
             .iter()
             .for_each(|s| self.device.destroy_semaphore(*s, None));
         self.data.render_finished_semaphores.clear();
+
+
+
+
+
+        // UI destroy swapchain
+        self.device.destroy_pipeline(self.ui_system.pipeline, None);
+        self.device.destroy_pipeline_layout(self.ui_system.pipeline_layout, None);
     }
 }

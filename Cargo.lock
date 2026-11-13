@@ -399,9 +399,9 @@ checksum = "00d174d5400e5e8fd687ad1049e2f578285fa914201b1af7e8b112a4546bd826"
 
 [[package]]
 name = "errno"
-version = "0.3.14"
+version = "0.3.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
+checksum = "e35d6e78f4cebb90e51d543db8fe41528851d6deeef6ef21ebd4bfdc1e784776"
 dependencies = [
  "libc",
  "windows-sys 0.61.2",
@@ -520,7 +520,6 @@ dependencies = [
  "pretty_env_logger",
  "rfd",
  "thiserror 1.0.69",
- "tobj",
  "vulkanalia",
  "winit",
 ]
@@ -1617,8 +1616,10 @@ dependencies = [
  "bytemuck",
  "strict-num",
 ]
-name = "toml_datetime"
-version = "1.1.1+spec-1.1.0"
+
+[[package]]
+name = "tokio"
+version = "1.54.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b52fd3255258d26fac7264ab5a76b53c13367136dc011d3d6ad4f8ed070396a3"
 dependencies = [
