@@ -542,8 +542,8 @@ impl UiSystem {
                     push_bytes,
                 );
 
-                // Cut window and handle scissor and draw !
-                let clip_off = ui_data.display_pos;
+                // Get screen info (screen offset, scale, and framebuffer size)
+                let clip_offset = ui_data.display_pos;
                 let clip_scale = ui_data.framebuffer_scale;
                 let fb_width = ui_data.display_size[0] * clip_scale[0];
                 let fb_height = ui_data.display_size[1] * clip_scale[1];
@@ -551,27 +551,37 @@ impl UiSystem {
                 let mut vtx_offset = 0;
                 let mut idx_offset = 0;
 
+                // Loop on Drawing list (each window has its own list)
                 for draw_list in ui_data.draw_lists() {
+                    // Loop on each command in the list (text, button, etc...)
                     for cmd in draw_list.commands() {
                         match cmd {
+                            // Standard command to draw indexed triangles
                             imgui::DrawCmd::Elements { count, cmd_params } => {
+                                // Get mask rectangle
                                 let clip_rect = cmd_params.clip_rect;
-                                let clip_min_x = clip_rect[0] - clip_off[0] * clip_scale[0];
-                                let clip_min_y = clip_rect[1] - clip_off[1] * clip_scale[1];
-                                let clip_max_x = clip_rect[2] - clip_off[0] * clip_scale[0];
-                                let clip_max_y = clip_rect[3] - clip_off[1] * clip_scale[1];
-
+                                // Calculate coordonates for the frame buffer
+                                let clip_min_x = clip_rect[0] - clip_offset[0] * clip_scale[0];
+                                let clip_min_y = clip_rect[1] - clip_offset[1] * clip_scale[1];
+                                let clip_max_x = clip_rect[2] - clip_offset[0] * clip_scale[0];
+                                let clip_max_y = clip_rect[3] - clip_offset[1] * clip_scale[1];
+ 
+                                // Check if we need to draw this window
                                 if clip_max_x > clip_min_x && clip_max_y > clip_min_y {
+                                    // Make sure each value stays on the screen size
                                     let x = clip_min_x.clamp(0.0, fb_width) as i32;
                                     let y = clip_min_y.clamp(0.0, fb_height) as u32;
+                                    // Calculate final sizes of the window
                                     let width = (clip_max_x - clip_min_x).clamp(0.0, fb_width - x as f32) as u32;
                                     let height = (clip_max_y - clip_min_y).clamp(0.0, fb_height - y as f32) as u32;
 
+                                    // Init scissor (each pixel not on this zone will be ignored)
                                     let scissor = vk::Rect2D::builder()
                                         .offset(vk::Offset2D { x, y: y as i32 })
                                         .extent(vk::Extent2D { width, height });
                                     device.cmd_set_scissor(command_buffer, 0, &[scissor]);
 
+                                    // Draw triangles
                                     device.cmd_draw_indexed(
                                         command_buffer,
                                         count as u32,
@@ -582,12 +592,17 @@ impl UiSystem {
                                     );
                                 }
                             }
+                            // Imgui asks to reinitialize rendering state (we handle it in the
+                            // pipeline already)
                             imgui::DrawCmd::ResetRenderState => {}
+                            // Execute personnalized callback functions if imgui needs it (for more
+                            // advanced rendering)
                             imgui::DrawCmd::RawCallback { callback, raw_cmd } => {
                                 callback(draw_list.raw(), raw_cmd);
                             }
                         }
                     }
+                    // We increase the offset so we don't redraw what we just draw
                     vtx_offset += draw_list.vtx_buffer().len();
                     idx_offset += draw_list.idx_buffer().len();
                 }
