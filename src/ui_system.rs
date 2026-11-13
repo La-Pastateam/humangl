@@ -12,6 +12,7 @@ use crate::vulkan::buffer::{create_buffer};
 use crate::app::AppData;
 use crate::vulkan::image::{create_image, create_image_view, transition_image_layout, copy_buffer_to_image};
 use crate::vulkan::pipeline::{create_shader_module};
+use crate::vulkan::device::QueueFamilyIndices;
 
 
 const DEFAULT_VTX_COUNT: usize = 5000;
@@ -42,6 +43,7 @@ pub struct UiSystem {
     pub descriptor_set_layout: vk::DescriptorSetLayout,
 
     pub ui_secondary_command_buffers: Vec<vk::CommandBuffer>,
+    pub ui_command_pool: vk::CommandPool,
 }
 
 impl UiSystem {
@@ -369,6 +371,29 @@ impl UiSystem {
             vk::MemoryPropertyFlags::HOST_COHERENT | vk::MemoryPropertyFlags::HOST_VISIBLE, 
         )?;
 
+        // -------------------Command Pool init-----------------------
+
+        let indices = QueueFamilyIndices::get(instance, data, data.physical_device)?;
+
+        let pool_info = vk::CommandPoolCreateInfo::builder()
+            .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER)
+            .queue_family_index(indices.graphics);
+        let ui_command_pool = device.create_command_pool(&pool_info, None)?;
+
+        let num_images = data.swapchain_images.len();
+        let mut ui_secondary_command_buffers = Vec::with_capacity(num_images);
+
+        for i in 0..num_images {
+            let allocate_info = vk::CommandBufferAllocateInfo::builder()
+                .command_pool(ui_command_pool)
+                .level(vk::CommandBufferLevel::SECONDARY)
+                .command_buffer_count(1);
+
+            let cb = device.allocate_command_buffers(&allocate_info)?[0];
+            ui_secondary_command_buffers.push(cb);
+        }
+        let ui_secondary_command_buffers = ui_secondary_command_buffers;
+
         Ok(Self {
             imgui,
             platform,
@@ -387,7 +412,8 @@ impl UiSystem {
             descriptor_pool,
             font_descriptor_set,
             descriptor_set_layout,
-            ui_secondary_command_buffers: Vec::new(),
+            ui_secondary_command_buffers,
+            ui_command_pool,
         })
     }
 
@@ -398,20 +424,10 @@ impl UiSystem {
         data: &mut AppData,
         image_index: usize,
     ) -> Result<vk::CommandBuffer> {
-        // Init command buffer
-        self.ui_secondary_command_buffers.
-            resize_with(image_index + 1, vk::CommandBuffer::null);
+        // Get command buffer 
+        let command_buffer = self.ui_secondary_command_buffers[image_index];
 
-        // Allocate command buffer 
-        let mut command_buffer = self.ui_secondary_command_buffers[image_index];
-        if command_buffer == vk::CommandBuffer::null() {
-            let allocate_info = vk::CommandBufferAllocateInfo::builder()
-                .command_pool(data.command_pools[image_index])
-                .level(vk::CommandBufferLevel::SECONDARY)
-                .command_buffer_count(1);
-            command_buffer = device.allocate_command_buffers(&allocate_info)?[0];
-            self.ui_secondary_command_buffers[image_index] = command_buffer;
-        }
+        device.reset_command_buffer(command_buffer, vk::CommandBufferResetFlags::empty())?;
 
         // Stock actual frame state in ui data to render it
         let ui_data = self.imgui.render();
@@ -617,13 +633,14 @@ impl UiSystem {
     pub unsafe fn destroy(&mut self, device: &Device) {
         //device.destroy_pipeline(self.pipeline, None);
         //device.destroy_pipeline_layout(self.pipeline_layout, None);
-        //
+
         device.destroy_buffer(self.vertex_buffer, None);
         device.free_memory(self.vertex_buffer_memory, None);
         device.destroy_buffer(self.index_buffer, None);
         device.free_memory(self.index_buffer_memory, None);
         device.destroy_image(self.font_image, None);
         device.free_memory(self.font_image_memory, None);
+        device.destroy_command_pool(self.ui_command_pool, None);
         device.destroy_image_view(self.font_view, None);
         device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
         device.destroy_sampler(self.font_sampler, None);
