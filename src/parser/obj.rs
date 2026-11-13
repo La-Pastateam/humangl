@@ -18,6 +18,16 @@ pub struct FaceVertex {
     pub normal_index: Option<usize>,
 }
 
+impl FaceVertex {
+    pub fn new(position_index: usize, normal_index: Option<usize>) -> Self {
+        Self {
+            position_index,
+            normal_index,
+            tex_coord_index: None,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct RawFaceVertex {
     position_index: i32,
@@ -197,7 +207,7 @@ fn parse_face_line(line: &str) -> Result<Vec<RawFaceVertex>> {
 
 // ── Triangulation ────────────────────────────────────────────────────────────
 
-fn triangulate_face(vertices: &[FaceVertex]) -> Vec<[FaceVertex; 3]> {
+pub fn triangulate_face(vertices: &[FaceVertex]) -> Vec<[FaceVertex; 3]> {
     if vertices.len() < 3 {
         return Vec::new();
     }

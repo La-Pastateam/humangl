@@ -194,7 +194,7 @@ impl App {
         let time = self.start.elapsed().as_secs_f32();
 
         let model = Mat4::from_translation(vec3(0.0, 0.0, 0.0))
-            * Mat4::from_axis_angle(vec3(0.0, 0.0, 1.0), Deg(90.0) * time);
+            * Mat4::from_axis_angle(vec3(0.0, 0.0, 1.0), Deg(20.0) * time);
 
         let model_bytes =
             &*slice_from_raw_parts(&model as *const Mat4 as *const u8, size_of::<Mat4>());

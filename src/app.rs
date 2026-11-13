@@ -40,7 +40,7 @@ use crate::vulkan::sync::{create_swapchain_sync_objects, create_sync_objects};
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const DEFAULT_MODEL: &str = "resources/model/42.obj";
+const DEFAULT_MODEL: &str = "resources/model/concave_test.obj";
 
 // ── App ───────────────────────────────────────────────────────────────────────
 
