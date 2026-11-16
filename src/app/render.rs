@@ -55,14 +55,7 @@ impl App {
 
 
         // Render UI
-        let ui = self.ui_system.imgui.frame();
-
-        // Prepare window
-        ui.window("Window params")
-            .size([300.0, 100.0], imgui::Condition::FirstUseEver)
-            .build(|| {
-                ui.text("hiyahiyaho")
-            });
+        self.ui_system.draw_window();
 
         self.update_command_buffer(image_index)?;
         self.update_uniform_buffer(image_index)?;
@@ -178,7 +171,7 @@ impl App {
         self.device
             .cmd_execute_commands(command_buffer, &secondary_command_buffer[..]);
 
-        let ui_secondary_command_buffer = self.ui_system.update_ui_secondary_command_buffer(
+        let ui_secondary_command_buffer = self.ui_system.update_ui_scnd_cmd_buffer(
             &self.instance,
             &self.device,
             &mut self.data,

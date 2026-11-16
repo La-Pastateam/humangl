@@ -1,4 +1,4 @@
-use imgui::Context;
+use imgui::{Context, FontConfig, FontGlyphRanges, FontSource};
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
 use winit::window::Window;
 use imgui::internal::RawWrapper;
@@ -46,22 +46,48 @@ pub struct UiSystem {
     pub ui_command_pool: vk::CommandPool,
 }
 
+
+
+
 impl UiSystem {
-    pub unsafe fn new(
+    pub unsafe fn setup_font(
+        imgui: &mut Context,
         instance: &Instance,
-        window: &Window,
         device: &Device,
         data: &mut AppData,
-        ) -> Result<Self> {
-        // -------------------General Init----------------------
-        // Link with window and imgui
-        let mut imgui = Context::create();
+        platform: &WinitPlatform,
+    ) -> Result<(vk::Image,
+        vk::DeviceMemory,
+        vk::ImageView,
+        vk::Sampler,
+        vk::DescriptorPool,
+        vk::DescriptorSet,
+        vk::DescriptorSetLayout)> {
+        // Get window DPI factor (so the font wont blur)
+        let hidpi_factor = platform.hidpi_factor();
+        let font_size = (16.0 * hidpi_factor) as f32;
 
-        let mut platform = WinitPlatform::new(&mut imgui);
-        platform.attach_window(imgui.io_mut(), window, HiDpiMode::Default);
+        // Load font from file
+        let font_data = include_bytes!("../resources/fonts/JetBrainsMono-Medium.ttf");
 
+        imgui.fonts().add_font(&[
+            FontSource::TtfData {
+                data: font_data,
+                size_pixels: font_size,
+                config: Some(FontConfig {
+                    oversample_h: 3,
+                    oversample_v: 1,
+                    pixel_snap_h: true,
+                    glyph_ranges: FontGlyphRanges::default(),
+                    ..FontConfig::default()
 
-        // -------------------Font setup----------------------
+                }),
+            },
+        ]);
+
+        // Adapt global scal if HiDDI is on
+        imgui.io_mut().font_global_scale = (1.0 / hidpi_factor) as f32;
+
         // Get font pixels from gui
         let fonts = imgui.fonts();
         let font_atlas = fonts.build_rgba32_texture();
@@ -201,22 +227,28 @@ impl UiSystem {
         let descriptor_copies: &[vk::CopyDescriptorSet] = &[];
         device.update_descriptor_sets(&[descriptor_write], descriptor_copies);
 
-
         // Destroy staging buffer
         device.destroy_buffer(staging_buffer, None);
         device.free_memory(staging_buffer_memory, None);
 
+        Ok((font_image, font_image_memory, font_image_view, font_sampler, descriptor_pool, font_descriptor_set, descriptor_set_layout))
+    }
 
-        // -------------------Pipeline setup----------------------
+
+    pub unsafe fn setup_pipeline(
+        device: &Device,
+        data: &mut AppData,
+        descriptor_set_layout: &vk::DescriptorSetLayout,
+    ) -> Result<(vk::Pipeline, vk::PipelineLayout)> {
         // Define Push Constants
         let push_constant_ranges = &[vk::PushConstantRange::builder()
             .stage_flags(vk::ShaderStageFlags::VERTEX)
             .offset(0)
             .size(16)
             .build()];
-        
+
         // Create pipeline layout and bind push constants
-        let set_layouts = &[descriptor_set_layout];
+        let set_layouts = &[*descriptor_set_layout];
         let pipeline_layout_info = vk::PipelineLayoutCreateInfo::builder()
             .set_layouts(set_layouts)
             .push_constant_ranges(push_constant_ranges);
@@ -348,6 +380,44 @@ impl UiSystem {
         device.destroy_shader_module(vert_shader_module, None);
         device.destroy_shader_module(frag_shader_module, None);
 
+        Ok((pipeline, pipeline_layout))
+    }
+
+    fn setup_style(imgui: &mut Context) {
+        // Get style var
+        let style = imgui.style_mut();
+
+        // Use dark mode by default
+        style.use_dark_colors();
+    }
+
+    pub unsafe fn new(
+        instance: &Instance,
+        window: &Window,
+        device: &Device,
+        data: &mut AppData,
+        ) -> Result<Self> {
+        // -------------------General Init----------------------
+        // Link with window and imgui
+        let mut imgui = Context::create();
+
+        UiSystem::setup_style(&mut imgui);
+
+        let mut platform = WinitPlatform::new(&mut imgui);
+        platform.attach_window(imgui.io_mut(), window, HiDpiMode::Default);
+
+        // -------------------Font setup----------------------
+        let (font_image,
+            font_image_memory,
+            font_view,
+            font_sampler,
+            descriptor_pool,
+            font_descriptor_set,
+            descriptor_set_layout) = UiSystem::setup_font(&mut imgui, instance, device, data, &platform)?;
+
+        // -------------------Pipeline setup----------------------
+        let (pipeline, pipeline_layout) = UiSystem::setup_pipeline(device, data, &descriptor_set_layout)?;
+
         // -------------------Vertex and Index setup----------------------
 
         let initial_vtx_size = (DEFAULT_VTX_COUNT * std::mem::size_of::<imgui::DrawVert>()) as vk::DeviceSize;
@@ -407,7 +477,7 @@ impl UiSystem {
             index_buffer_size: initial_idx_size,
             font_image,
             font_image_memory,
-            font_view: font_image_view,
+            font_view,
             font_sampler,
             descriptor_pool,
             font_descriptor_set,
@@ -417,13 +487,14 @@ impl UiSystem {
         })
     }
 
-    pub unsafe fn update_ui_secondary_command_buffer(
+    pub unsafe fn update_ui_scnd_cmd_buffer(
         &mut self,
         instance: &Instance,
         device: &Device,
         data: &mut AppData,
         image_index: usize,
     ) -> Result<vk::CommandBuffer> {
+        // -------------------General Init----------------------
         // Get command buffer 
         let command_buffer = self.ui_secondary_command_buffers[image_index];
 
@@ -486,20 +557,18 @@ impl UiSystem {
             .flags(vk::CommandBufferUsageFlags::RENDER_PASS_CONTINUE)
             .inheritance_info(&inheritance_info);
 
+        // -------------------Prepare drawing----------------------
         // Start recording in command buffer
         device.begin_command_buffer(command_buffer, &info)?;
 
         // Check screen size and if there is something to display
         if ui_data.display_size[0] > 0.0 && ui_data.display_size[1] > 0.0 {
-            let vertex_buffer_size = (ui_data.total_vtx_count as usize * std::mem::size_of::<imgui::DrawVert>()) as vk::DeviceSize;
-            let index_buffer_size = (ui_data.total_idx_count as usize * std::mem::size_of::<u16>()) as vk::DeviceSize;
-
-            if vertex_buffer_size > 0 && index_buffer_size > 0 {
+            if required_vtx_size > 0 && required_idx_size > 0 {
                 // Init Copy Vertex/Index buffers
-                let vtx_memory = device.map_memory(self.vertex_buffer_memory, 0, vertex_buffer_size, vk::MemoryMapFlags::empty())?;
+                let vtx_memory = device.map_memory(self.vertex_buffer_memory, 0, required_vtx_size, vk::MemoryMapFlags::empty())?;
                 let mut vtx_dest = vtx_memory.cast::<imgui::DrawVert>();
 
-                let idx_memory = device.map_memory(self.index_buffer_memory, 0, index_buffer_size, vk::MemoryMapFlags::empty())?;
+                let idx_memory = device.map_memory(self.index_buffer_memory, 0, required_idx_size, vk::MemoryMapFlags::empty())?;
                 let mut idx_dest = idx_memory.cast::<u16>();
 
                 // Copy Vertex/Index buffers
@@ -558,6 +627,7 @@ impl UiSystem {
                     push_bytes,
                 );
 
+                // -------------------Draw UI----------------------
                 // Get screen info (screen offset, scale, and framebuffer size)
                 let clip_offset = ui_data.display_pos;
                 let clip_scale = ui_data.framebuffer_scale;
@@ -629,6 +699,17 @@ impl UiSystem {
         Ok(command_buffer)
     }
 
+    pub unsafe fn draw_window(&mut self) {
+        // Render UI
+        let ui = self.imgui.frame();
+
+        // Prepare window
+        ui.window("Window params")
+            .size([300.0, 100.0], imgui::Condition::FirstUseEver)
+            .build(|| {
+                ui.show_default_style_editor();
+            });
+    }
 
     pub unsafe fn destroy(&mut self, device: &Device) {
         // Pipeline in destroyed in function destroy_swapchain in App
@@ -643,149 +724,5 @@ impl UiSystem {
         device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
         device.destroy_sampler(self.font_sampler, None);
         device.destroy_descriptor_pool(self.descriptor_pool, None);
-    }
-
-    pub unsafe fn recreate_ui_swapchain(&mut self, device: &Device, data: &AppData) -> Result<()> {
-        // Define Push Constants
-        let push_constant_ranges = &[vk::PushConstantRange::builder()
-            .stage_flags(vk::ShaderStageFlags::VERTEX)
-            .offset(0)
-            .size(16)
-            .build()];
-
-        // Create pipeline layout and bind push constants
-        let set_layouts = &[self.descriptor_set_layout];
-        let pipeline_layout_info = vk::PipelineLayoutCreateInfo::builder()
-            .set_layouts(set_layouts)
-            .push_constant_ranges(push_constant_ranges);
-
-        self.pipeline_layout = device.create_pipeline_layout(&pipeline_layout_info, None)?;
-
-        // Describe struct imgui::DrawVert
-        let binding_descriptions = &[vk::VertexInputBindingDescription::builder()
-            .binding(0)
-            .stride(std::mem::size_of::<imgui::DrawVert>() as u32)
-            .input_rate(vk::VertexInputRate::VERTEX)
-            .build()];
-
-        let attribute_descriptions = &[
-            vk::VertexInputAttributeDescription::builder()
-                .binding(0)
-                .location(0)
-                .format(vk::Format::R32G32_SFLOAT)
-                .offset(0)
-                .build(),
-            vk::VertexInputAttributeDescription::builder()
-                .binding(0)
-                .location(1)
-                .format(vk::Format::R32G32_SFLOAT)
-                .offset(8)
-                .build(),
-            vk::VertexInputAttributeDescription::builder()
-                .binding(0)
-                .location(2)
-                .format(vk::Format::R8G8B8A8_UNORM)
-                .offset(16)
-                .build(),
-        ];
-
-        let vertex_input_info = vk::PipelineVertexInputStateCreateInfo::builder()
-            .vertex_binding_descriptions(binding_descriptions)
-            .vertex_attribute_descriptions(attribute_descriptions);
-
-
-        // Shaders loading and config
-        let vert_shader_code = include_bytes!("../shaders/imgui.vert.spv");
-        let frag_shader_code = include_bytes!("../shaders/imgui.frag.spv");
-
-        let vert_shader_module = create_shader_module(device, vert_shader_code)?;
-        let frag_shader_module = create_shader_module(device, frag_shader_code)?;
-
-        let vert_stage = vk::PipelineShaderStageCreateInfo::builder()
-            .stage(vk::ShaderStageFlags::VERTEX)
-            .module(vert_shader_module)
-            .name(b"main\0");
-
-        let frag_stage = vk::PipelineShaderStageCreateInfo::builder()
-            .stage(vk::ShaderStageFlags::FRAGMENT)
-            .module(frag_shader_module)
-            .name(b"main\0");
-
-        let shader_stages = &[vert_stage.build(), frag_stage.build()];
-
-
-        let input_assembly = vk::PipelineInputAssemblyStateCreateInfo::builder()
-            .topology(vk::PrimitiveTopology::TRIANGLE_LIST)
-            .primitive_restart_enable(false);
-
-        let dynamic_states = &[vk::DynamicState::VIEWPORT, vk::DynamicState::SCISSOR];
-        let dynamic_state = vk::PipelineDynamicStateCreateInfo::builder()
-            .dynamic_states(dynamic_states);
-
-        let viewport_state = vk::PipelineViewportStateCreateInfo::builder()
-            .viewport_count(1)
-            .scissor_count(1);
-
-        let rasterizer = vk::PipelineRasterizationStateCreateInfo::builder()
-            .depth_clamp_enable(false)
-            .rasterizer_discard_enable(false)
-            .polygon_mode(vk::PolygonMode::FILL)
-            .line_width(1.0)
-            .cull_mode(vk::CullModeFlags::NONE)
-            .front_face(vk::FrontFace::CLOCKWISE);
-
-        let multisampling = vk::PipelineMultisampleStateCreateInfo::builder()
-            .sample_shading_enable(false)
-            .rasterization_samples(data.msaa_samples);
-
-        let depth_stencil = vk::PipelineDepthStencilStateCreateInfo::builder()
-            .depth_test_enable(false)
-            .depth_write_enable(false)
-            .depth_compare_op(vk::CompareOp::ALWAYS);
-
-        let color_blend_attachment = &[vk::PipelineColorBlendAttachmentState::builder()
-            .blend_enable(true)
-            .src_color_blend_factor(vk::BlendFactor::SRC_ALPHA)
-            .dst_color_blend_factor(vk::BlendFactor::ONE_MINUS_SRC_ALPHA)
-            .color_blend_op(vk::BlendOp::ADD)
-            .src_alpha_blend_factor(vk::BlendFactor::ONE)
-            .dst_alpha_blend_factor(vk::BlendFactor::ONE_MINUS_SRC_ALPHA)
-            .alpha_blend_op(vk::BlendOp::ADD)
-            .color_write_mask(
-                vk::ColorComponentFlags::R
-                | vk::ColorComponentFlags::G
-                | vk::ColorComponentFlags::B
-                | vk::ColorComponentFlags::A)
-            .build()
-        ];
-
-        let color_blending = vk::PipelineColorBlendStateCreateInfo::builder()
-            .logic_op_enable(false)
-            .attachments(color_blend_attachment);
-
-        let pipeline_info = vk::GraphicsPipelineCreateInfo::builder()
-            .stages(shader_stages)
-            .vertex_input_state(&vertex_input_info)
-            .input_assembly_state(&input_assembly)
-            .viewport_state(&viewport_state)
-            .rasterization_state(&rasterizer)
-            .multisample_state(&multisampling)
-            .depth_stencil_state(&depth_stencil)
-            .color_blend_state(&color_blending)
-            .dynamic_state(&dynamic_state)
-            .layout(self.pipeline_layout)
-            .render_pass(data.render_pass)
-            .subpass(0);
-
-        self.pipeline = device.create_graphics_pipelines(
-            vk::PipelineCache::null(),
-            &[pipeline_info],
-            None
-        )?.0[0];
-
-        device.destroy_shader_module(vert_shader_module, None);
-        device.destroy_shader_module(frag_shader_module, None);
-
-        Ok(())
     }
 }

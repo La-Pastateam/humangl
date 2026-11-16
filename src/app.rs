@@ -125,7 +125,7 @@ impl App {
         create_swapchain_sync_objects(&self.device, &mut self.data)?;
 
         // Recreate UI swapchain
-        self.ui_system.recreate_ui_swapchain(&self.device, &self.data)?;
+        (self.ui_system.pipeline, self.ui_system.pipeline_layout) = UiSystem::setup_pipeline(&self.device, &mut self.data, &self.ui_system.descriptor_set_layout)?;
         Ok(())
     }
 
