@@ -631,9 +631,7 @@ impl UiSystem {
 
 
     pub unsafe fn destroy(&mut self, device: &Device) {
-        //device.destroy_pipeline(self.pipeline, None);
-        //device.destroy_pipeline_layout(self.pipeline_layout, None);
-
+        // Pipeline in destroyed in function destroy_swapchain in App
         device.destroy_buffer(self.vertex_buffer, None);
         device.free_memory(self.vertex_buffer_memory, None);
         device.destroy_buffer(self.index_buffer, None);
