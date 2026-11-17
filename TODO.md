@@ -38,6 +38,7 @@
 ## **III.** Rendre Graphique le skeleton
 
 * Supprimer la gestion des modèles par fichier local✅
+* Ajouter le skeleton comme objet à render : l'app contient 1 skeleton qui ensuite render tous ses bones
 * possibilité d'afficher plusieurs models.
 * Ajouter le model skeleton à la swapchain.
 *
