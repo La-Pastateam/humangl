@@ -58,7 +58,7 @@ pub struct App {
 impl App {
     /// Creates our Vulkan app.
     pub unsafe fn create(window: &Window) -> Result<Self> {
-        let skeleton = Skeleton::human(String::from("test"));
+        let skeleton = Skeleton::human(String::from("Daniel"));
         let loader = LibloadingLoader::new(LIBRARY)?;
         let entry = Entry::new(loader).map_err(|b| anyhow!("{}", b))?;
         let mut data = AppData::default();
