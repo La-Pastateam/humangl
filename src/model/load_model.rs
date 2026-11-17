@@ -5,7 +5,7 @@ use anyhow::Result;
 use vulkanalia::prelude::v1_0::*;
 
 use crate::app::AppData;
-use crate::model::Model;
+use crate::model::{Model, Skeleton};
 use crate::parser::obj::{self, FaceVertex};
 use crate::utils::math::{Vec2, Vec3, vec2, vec3};
 
@@ -91,9 +91,7 @@ fn build_vertex(model: &Model, fv: &FaceVertex, center: [f32; 3], facteur: f32) 
     }
 }
 
-pub fn load_model(data: &mut AppData) -> Result<()> {
-    let model = Model::new(10.0, 5.0, 10.0, GREEN);
-
+pub fn load_model(data: &mut AppData, model: &Model) -> Result<()> {
     let (min, max) = obj::compute_bounding_box(&model.obj_model.positions);
     let center = obj::compute_centroid(&model.obj_model.positions);
     let etendu: [f32; 3] = [max[0] - min[0], max[1] - min[1], max[2] - min[2]];
@@ -111,13 +109,22 @@ pub fn load_model(data: &mut AppData) -> Result<()> {
             if let Some(i) = unique_vertices.get(fv) {
                 data.indices.push(*i as u32);
             } else {
-                let vertex = build_vertex(&model, fv, center, facteur);
+                let vertex = build_vertex(model, fv, center, facteur);
                 let index = data.vertices.len();
                 unique_vertices.insert(fv, index);
                 data.vertices.push(vertex);
                 data.indices.push(index as u32);
             }
         }
+    }
+    Ok(())
+}
+
+pub fn load_skeleton(skeleton: &Skeleton, data: &mut AppData) -> Result<()> {
+    for bone in skeleton.bones() {
+        println!("test load");
+        load_model(data, &bone.model)?;
+        load_model(data, &bone.model)?;
     }
     Ok(())
 }
