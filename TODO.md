@@ -49,7 +49,7 @@
 	- creation de nouvelle pipeline, command buffer, etc...
 	- creation de nouveaux shaders
 	- Compilation auto des shaders dans le ```compile.sh```
-* Set up l'ui à notre goût
+* Set up l'ui à notre goût ✅
 * Rendre les variables codé en dur en tant que mut, utilisé par l'interface.
 * afficher un menu
 * rendre selectionnable les objets afin de les modifier
