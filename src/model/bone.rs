@@ -1,4 +1,5 @@
 use crate::model::Model;
+use crate::utils::color::RGB;
 use crate::utils::math::{Matrix4, Vec3};
 
 #[derive(PartialEq, Debug, Clone)]
@@ -23,17 +24,15 @@ impl Bone {
         }
     }
 
-    pub fn from_dimension(label: String, id: usize, depth: f32, width: f32, height: f32) -> Self {
-        println!("test : {id}");
-        let color = Vec3 {
-            x: 0.0,
-            y: id as f32,
-            z: 0.5 + (id as f32) * 10.0,
-            // x: ((id + 1) as f32 * 15.0) % 155.0,
-            // y: ((id + 1) as f32 * 25.0) % 155.0,
-            // z: ((id + 1) as f32 * 35.0) % 155.0,
-        };
-        let model = Model::new(depth, width, height, color);
+    pub fn from_dimension(label: String, id: usize, width: f32, height: f32, depth: f32) -> Self {
+        // TODO: Revoir la gestion des couleurs, acutellement temporaire pour voir les différences.
+        let color = RGB::new(
+            (((id + 1) * 90) % 255) as u8,
+            (((id + 1) * 10) % 255) as u8,
+            (((id + 1) * 30) % 255) as u8,
+        )
+        .to_vec();
+        let model = Model::new(width, height, depth, color);
 
         Bone {
             label,
@@ -50,6 +49,11 @@ impl Bone {
 impl Bone {
     pub fn change_color(&mut self, color: Vec3) -> &Self {
         self.model.change_color(color);
+        self
+    }
+
+    pub fn add_parent(&mut self, id: usize) -> &Self {
+        self.parent_id = Some(id);
         self
     }
 
