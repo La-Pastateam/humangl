@@ -108,7 +108,7 @@ impl ApplicationHandler for GeneralApp {
                     self.minimized = true;
                 } else {
                     self.minimized = false;
-                    unsafe {let _ = app.recreate_swapchain(window);}
+                    unsafe {app.recreate_swapchain(window).expect("Swapchain recreation failed");}
                 }
             }
             // Destroy our Vulkan app.
