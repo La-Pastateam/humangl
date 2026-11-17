@@ -6,12 +6,13 @@
     clippy::unnecessary_wraps
 )]
 
+use winit::application::ApplicationHandler;
 use winit::dpi::LogicalSize;
 use winit::event::ElementState;
-use winit::event::{Event, WindowEvent};
-use winit::event_loop::{EventLoop, EventLoopWindowTarget};
-use winit::window::WindowBuilder;
-
+use winit::event::{Event, WindowEvent, StartCause};
+use winit::event_loop::{EventLoop, ActiveEventLoop};
+use winit::window::{Window, WindowId};
+use std::time::Instant;
 use anyhow::Result;
 use log::*;
 
@@ -27,71 +28,133 @@ mod parser;
 mod utils;
 mod vulkan;
 
+mod ui_system;
+
 // ── Entry Point ───────────────────────────────────────────────────────────────
 
-fn main() -> Result<()> {
-    pretty_env_logger::init();
 
-    // Window
+struct GeneralApp {
+    window: Option<Window>,
+    app: Option<App>,
+    minimized: bool,
+    last_frame: Instant,
+}
 
-    let event_loop = EventLoop::new()?;
-    let window = WindowBuilder::new()
-        .with_title("HumanGL (Rust/Vulkan)")
-        .with_inner_size(LogicalSize::new(1024, 768))
-        .build(&event_loop)?;
+impl ApplicationHandler for GeneralApp {
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        if self.window.is_none() {
+            let window_attributes = Window::default_attributes()
+                .with_title("HumanGL")
+                .with_inner_size(LogicalSize::new(1024, 768));
 
-    // App
+            let window = event_loop
+                .create_window(window_attributes)
+                .expect("Failed to create window");
 
-    let mut app = unsafe { App::create(&window)? };
-    let mut minimized = false;
-    event_loop.run(move |event, elwt| {
+            let app = unsafe { App::create(&window).expect("Failed to create app") };
+
+            self.window = Some(window);
+            self.app = Some(app);
+        }
+    }
+
+    fn new_events(&mut self, _event_loop: &ActiveEventLoop, _cause: StartCause) {
+        if let Some(app) = &mut self.app {
+            let now = Instant::now();
+            app.ui_system.imgui.io_mut().update_delta_time(now - self.last_frame);
+            self.last_frame = now;
+        }
+    }
+
+    fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
+        if let (Some(window), Some(app)) = (&self.window, &mut self.app) {
+            app.ui_system
+                .platform
+                .prepare_frame(app.ui_system.imgui.io_mut(), window)
+                .expect("Failed to prepare frame");
+            window.request_redraw();
+        }
+    }
+
+    fn window_event(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        window_id: WindowId,
+        event: WindowEvent
+    ) {
+        let (Some(window), Some(app)) = (&self.window, &mut self.app) else {
+            return;
+        };
+
+        let full_event: Event<()> = Event::WindowEvent {
+            window_id,
+            event: event.clone(),
+        };
+
+        app.ui_system
+            .platform
+            .handle_event(app.ui_system.imgui.io_mut(), window, &full_event);
+
         match event {
-            // Request a redraw when all events were processed.
-            Event::AboutToWait => window.request_redraw(),
-            Event::WindowEvent { event, .. } => match event {
-                // Render a frame if our Vulkan app is not being destroyed.
-                WindowEvent::RedrawRequested if !elwt.exiting() && !minimized => {
-                    if let Err(e) = unsafe { app.render(&window) } {
-                        error!("{e:#}");
-                        process::exit(1);
-                    }
+            // Render a frame if our Vulkan app is not being destroyed.
+            WindowEvent::RedrawRequested if !event_loop.exiting() && !self.minimized => {
+                if let Err(e) = unsafe { app.render(&window) } {
+                    error!("{e:#}");
+                    process::exit(1);
                 }
-                WindowEvent::Resized(size) => {
-                    if size.width == 0 || size.height == 0 {
-                        minimized = true;
-                    } else {
-                        minimized = false;
-                        app.resized = true;
-                    }
+            }
+            WindowEvent::Resized(size) => {
+                if size.width == 0 || size.height == 0 {
+                    self.minimized = true;
+                } else {
+                    self.minimized = false;
+                    unsafe {app.recreate_swapchain(window).expect("Swapchain recreation failed");}
                 }
-                // Destroy our Vulkan app.
-                WindowEvent::CloseRequested => {
-                    exit_app(&mut app, elwt);
-                }
+            }
+            // Destroy our Vulkan app.
+            WindowEvent::CloseRequested => {
+                exit_app(app, event_loop);
+            }
 
-                WindowEvent::KeyboardInput { event, .. }
-                    if event.state == ElementState::Pressed =>
-                {
+            WindowEvent::KeyboardInput { event, .. }
+                if event.state == ElementState::Pressed =>
+            {
+                if !app.ui_system.imgui.io().want_capture_keyboard {
                     match handle_input(event.physical_key, &mut app.data) {
+                        Ok(Signal::ToggleUi) => app.ui_system.ui_visible = !app.ui_system.ui_visible,
                         Ok(Signal::Nothing) => {}
                         Ok(Signal::Exit) => {
-                            exit_app(&mut app, elwt);
+                            exit_app(app, event_loop);
                         }
                         Err(e) => {
                             error!("Error has ocurred while operating input {e}");
                         }
                     };
                 }
-                _ => {}
-            },
+            }
             _ => {}
         }
-    })?;
 
+    }
+}
+
+
+fn main() -> Result<()> {
+    pretty_env_logger::init();
+
+    let event_loop = EventLoop::new()?;
+    let mut runner = GeneralApp {
+        window: None,
+        app: None,
+        minimized: false,
+        last_frame: Instant::now(),
+    };
+
+    event_loop.run_app(&mut runner)?;
     Ok(())
 }
 
-fn exit_app(app: &mut App, elwt: &EventLoopWindowTarget<()>) {
+fn exit_app(app: &mut App, elwt: &ActiveEventLoop) {
     elwt.exit();
     unsafe {
         app.destroy();

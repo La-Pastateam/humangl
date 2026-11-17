@@ -36,23 +36,25 @@ use crate::vulkan::pipeline::create_pipeline;
 use crate::vulkan::render_pass::create_render_pass;
 use crate::vulkan::swapchain::{create_swapchain, create_swapchain_image_views};
 use crate::vulkan::sync::{create_swapchain_sync_objects, create_sync_objects};
+use crate::ui_system::UiSystem;
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 // ── App ───────────────────────────────────────────────────────────────────────
 
 /// Our Vulkan app.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct App {
     entry: Entry,
     instance: Instance,
     pub data: AppData,
     device: Device,
     frame: usize,
-    pub resized: bool,
     pub new_model: bool,
     start: Instant,
     skeleton: Skeleton,
+    models: usize,
+    pub ui_system: UiSystem,
 }
 
 impl App {
@@ -86,20 +88,23 @@ impl App {
         create_sync_objects(&device, &mut data)?;
         create_swapchain_sync_objects(&device, &mut data)?;
 
+        let ui_system = unsafe {UiSystem::new(&instance, window, &device, &mut data)};
+
         Ok(Self {
             entry,
             instance,
             data,
             device,
             frame: 0,
-            resized: false,
             new_model: false,
             start: Instant::now(),
             skeleton: skeleton,
+            models: 1,
+            ui_system: ui_system?,
         })
     }
 
-    unsafe fn recreate_swapchain(&mut self, window: &Window) -> Result<()> {
+    pub unsafe fn recreate_swapchain(&mut self, window: &Window) -> Result<()> {
         self.device.device_wait_idle()?;
         self.destroy_swapchain();
         create_swapchain(window, &self.instance, &self.device, &mut self.data)?;
@@ -115,12 +120,18 @@ impl App {
         create_image_command_pools(&self.instance, &self.device, &mut self.data)?;
         create_command_buffers(&self.device, &mut self.data)?;
         create_swapchain_sync_objects(&self.device, &mut self.data)?;
+
+        // Recreate UI swapchain
+        (self.ui_system.pipeline, self.ui_system.pipeline_layout) = UiSystem::setup_pipeline(&self.device, &mut self.data, &self.ui_system.descriptor_set_layout)?;
         Ok(())
     }
 
     /// Destroys our Vulkan app.
     pub unsafe fn destroy(&mut self) {
         self.device.device_wait_idle().unwrap();
+        // ───
+        self.ui_system.destroy(&self.device);
+
         self.device.destroy_buffer(self.data.index_buffer, None);
         self.device.free_memory(self.data.index_buffer_memory, None);
         self.destroy_swapchain();
@@ -129,7 +140,6 @@ impl App {
         self.device.destroy_buffer(self.data.vertex_buffer, None);
         self.device
             .free_memory(self.data.vertex_buffer_memory, None);
-
         self.data
             .in_flight_fences
             .iter()
@@ -164,16 +174,6 @@ impl App {
             .destroy_image_view(self.data.depth_image_view, None);
         self.device.free_memory(self.data.depth_image_memory, None);
         self.device.destroy_image(self.data.depth_image, None);
-        self.device
-            .destroy_descriptor_pool(self.data.descriptor_pool, None);
-        self.data
-            .uniform_buffers
-            .iter()
-            .for_each(|b| self.device.destroy_buffer(*b, None));
-        self.data
-            .uniform_buffers_memory
-            .iter()
-            .for_each(|m| self.device.free_memory(*m, None));
         self.data
             .framebuffers
             .iter()
@@ -187,6 +187,16 @@ impl App {
             .iter()
             .for_each(|v| self.device.destroy_image_view(*v, None));
         self.device.destroy_swapchain_khr(self.data.swapchain, None);
+        self.device
+            .destroy_descriptor_pool(self.data.descriptor_pool, None);
+        self.data
+            .uniform_buffers
+            .iter()
+            .for_each(|b| self.device.destroy_buffer(*b, None));
+        self.data
+            .uniform_buffers_memory
+            .iter()
+            .for_each(|m| self.device.free_memory(*m, None));
         self.data
             .command_pools
             .iter()
@@ -199,5 +209,9 @@ impl App {
             .iter()
             .for_each(|s| self.device.destroy_semaphore(*s, None));
         self.data.render_finished_semaphores.clear();
+
+        // ui destroy swapchain
+        self.device.destroy_pipeline(self.ui_system.pipeline, None);
+        self.device.destroy_pipeline_layout(self.ui_system.pipeline_layout, None);
     }
 }

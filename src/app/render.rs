@@ -59,6 +59,10 @@ impl App {
 
         self.data.images_in_flight[image_index] = self.data.in_flight_fences[self.frame];
 
+
+        // Render UI
+        self.ui_system.draw_window(&mut self.data);
+
         self.update_command_buffer(image_index)?;
         self.update_uniform_buffer(image_index)?;
 
@@ -94,8 +98,7 @@ impl App {
         let changed = result == Ok(vk::SuccessCode::SUBOPTIMAL_KHR)
             || result == Err(vk::ErrorCode::OUT_OF_DATE_KHR);
 
-        if self.resized || changed {
-            self.resized = false;
+        if changed {
             self.recreate_swapchain(window)?;
         } else if let Err(e) = result {
             return Err(anyhow!(e));
@@ -172,6 +175,16 @@ impl App {
             .collect::<Result<Vec<_>, _>>()?;
         self.device
             .cmd_execute_commands(command_buffer, &secondary_command_buffer[..]);
+
+        let ui_secondary_command_buffer = self.ui_system.update_ui_scnd_cmd_buffer(
+            &self.instance,
+            &self.device,
+            &mut self.data,
+            image_index,
+        )?;
+
+        self.device
+            .cmd_execute_commands(command_buffer, &[ui_secondary_command_buffer]);
 
         self.device.cmd_end_render_pass(command_buffer);
         self.device.end_command_buffer(command_buffer)?;

@@ -17,7 +17,7 @@ use crate::utils::math::{Vec2, Vec3, vec2, vec3};
 #[derive(Copy, Clone, Debug)]
 pub struct Vertex {
     pos: Vec3,
-    color: Vec3,
+    pub color: Vec3,
     tex_coord: Vec2,
 }
 
