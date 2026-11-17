@@ -2,9 +2,13 @@
 
 * **I.** Remettre en forme le projet vulkanalia pour accueillir HumanGl
 * **II.** Créer des modèles a partir d'une fonction et setup les membres.
-* **III.** Préparer la Mutant Stack (Matrice Stack).
-* **IV.** Ajouter une interface de modification des modèles.
-* **V.** Finitions
+ A. Bones
+ B. Skeleton
+ C. Verifications
+* **III.** Rebdre Graphique le Skeelton
+* **IV.** Préparer la Mutant Stack (Matrice Stack).
+* **V.** Ajouter une interface de modification des modèles.
+* **VI.** Finitions
 
 ## I. Remettre en forme vulkanalia -> tcros
 
@@ -33,7 +37,8 @@
 
 ## **III.** Rendre Graphique le skeleton
 
-* Supprimer la gestion des modèles par fichier local
+* Supprimer la gestion des modèles par fichier local✅
+* possibilité d'afficher plusieurs models.
 * Ajouter le model skeleton à la swapchain.
 *
 
