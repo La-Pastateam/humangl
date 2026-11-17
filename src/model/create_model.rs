@@ -1,5 +1,5 @@
-use crate::parser::obj::{FaceVertex, ObjModel, triangulate_face};
-use crate::utils::math::{Vec2, Vec3, vec2, vec3};
+use crate::parser::obj::{FaceVertex, ObjModel};
+use crate::utils::math::Vec3;
 
 struct QuadFacePos {
     normal: usize,
