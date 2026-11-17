@@ -6,13 +6,13 @@
     clippy::unnecessary_wraps
 )]
 
+use winit::application::ApplicationHandler;
 use winit::dpi::LogicalSize;
 use winit::event::ElementState;
-use winit::event::{Event, WindowEvent};
+use winit::event::{Event, WindowEvent, StartCause};
 use winit::event_loop::{EventLoop, ActiveEventLoop};
-use winit::window::Window;
+use winit::window::{Window, WindowId};
 use std::time::Instant;
-
 use anyhow::Result;
 use log::*;
 
@@ -31,6 +31,74 @@ mod vulkan;
 mod ui_system;
 
 // ── Entry Point ───────────────────────────────────────────────────────────────
+
+
+struct GeneralDataApp {
+    window: Option<Window>,
+    app: Option<App>,
+    minimized: bool,
+    last_frame: Instant,
+}
+//
+// impl ApplicationHandler for GeneralDataApp {
+//     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+//         if self.window.is_none() {
+//             let window_attributes = Window::default_attributes()
+//                 .with_title("HumanGL")
+//                 .with_inner_size(LogicalSize::new(1024, 768));
+//
+//             let window = event_loop
+//                 .create_window(window_attributes)
+//                 .expect("Failed to create window");
+//
+//             let app = unsafe { App::create(&window).expect("Failed to create app") };
+//
+//             self.window = Some(window);
+//             self.app = Some(app);
+//         }
+//     }
+//
+//     fn new_events(&mut self, _event_loop: &ActiveEventLoop, _cause: StartCause) {
+//         if let Some(app) = &mut self.app {
+//             let now = Instant::now();
+//             app.ui_system.imgui.io_mut().update_delta_time(now - self.last_frame);
+//             self.last_frame = now;
+//         }
+//     }
+//
+//     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
+//         if let (Some(window), Some(App)) = (&self.window, &mut self.app) {
+//             app.ui_system
+//                 .platform
+//                 .prepare_frame(app.ui_system.imgui.io_mut(), window)
+//                 .expect("Failed to prepare frame");
+//             window.request_redraw();
+//         }
+//     }
+//
+//     fn window_event(
+//         &mut self,
+//         event_loop: &ActiveEventLoop,
+//         window_id: WindowId,
+//         event: WindowEvent
+//     ) {
+//
+//     }
+//
+//
+// }
+//
+
+
+
+
+
+
+
+
+
+
+
 
 fn main() -> Result<()> {
     pretty_env_logger::init();
