@@ -6,15 +6,10 @@ use vulkanalia::prelude::v1_0::*;
 
 use crate::app::AppData;
 use crate::model::{Model, Skeleton};
-use crate::parser::obj::{self, FaceVertex};
+use crate::parser::obj::FaceVertex;
 use crate::utils::math::{Vec2, Vec3, vec2, vec3};
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-
-const TARGET_SIZE: f32 = 1.50;
-const RED: Vec3 = vec3(255.0, 0.0, 0.0);
-const GREEN: Vec3 = vec3(0.0, 255.0, 0.0);
-const BLUE: Vec3 = vec3(0.0, 0.0, 255.0);
 
 // ── Vertex Data ─────────────────────────────────────────────────────────────────
 
@@ -70,7 +65,7 @@ impl Vertex {
 
 // ── Model Loading ─────────────────────────────────────────────────────────────────
 
-fn build_vertex(model: &Model, fv: &FaceVertex, center: [f32; 3], facteur: f32) -> Vertex {
+fn build_vertex(model: &Model, fv: &FaceVertex) -> Vertex {
     let model_pos = model.obj_model.positions[fv.position_index];
     let tex_coord = match fv.tex_coord_index {
         Some(i) => {
@@ -81,27 +76,13 @@ fn build_vertex(model: &Model, fv: &FaceVertex, center: [f32; 3], facteur: f32) 
     };
 
     Vertex {
-        pos: vec3(
-            (model_pos[0] - center[0]) * facteur,
-            (model_pos[1] - center[1]) * facteur,
-            (model_pos[2] - center[2]) * facteur,
-        ),
+        pos: vec3(model_pos[0], model_pos[1], model_pos[2]),
         color: model.color,
         tex_coord,
     }
 }
 
 pub fn load_model(data: &mut AppData, model: &Model) -> Result<()> {
-    let (min, max) = obj::compute_bounding_box(&model.obj_model.positions);
-    let center = obj::compute_centroid(&model.obj_model.positions);
-    let etendu: [f32; 3] = [max[0] - min[0], max[1] - min[1], max[2] - min[2]];
-    let etendu_max = etendu[0].max(etendu[1]).max(etendu[2]);
-    let facteur: f32 = if etendu_max > f32::EPSILON {
-        TARGET_SIZE / etendu_max
-    } else {
-        1.0
-    };
-
     let mut unique_vertices = HashMap::new();
 
     for face in &model.obj_model.faces {
@@ -109,7 +90,7 @@ pub fn load_model(data: &mut AppData, model: &Model) -> Result<()> {
             if let Some(i) = unique_vertices.get(fv) {
                 data.indices.push(*i as u32);
             } else {
-                let vertex = build_vertex(model, fv, center, facteur);
+                let vertex = build_vertex(model, fv);
                 let index = data.vertices.len();
                 unique_vertices.insert(fv, index);
                 data.vertices.push(vertex);
@@ -122,8 +103,6 @@ pub fn load_model(data: &mut AppData, model: &Model) -> Result<()> {
 
 pub fn load_skeleton(skeleton: &Skeleton, data: &mut AppData) -> Result<()> {
     for bone in skeleton.bones() {
-        println!("test load");
-        load_model(data, &bone.model)?;
         load_model(data, &bone.model)?;
     }
     Ok(())
