@@ -161,7 +161,7 @@ impl App {
             vk::SubpassContents::SECONDARY_COMMAND_BUFFERS,
         );
 
-        let secondary_command_buffer = (0..self.models)
+        let secondary_command_buffer = (0..1)
             .map(|i| self.update_secondary_command_buffer(image_index, 0))
             .collect::<Result<Vec<_>, _>>()?;
         self.device

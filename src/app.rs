@@ -20,7 +20,7 @@ use vulkanalia::vk::KhrSurfaceExtensionInstanceCommands;
 // NOTE: This trait was called `KhrSwapchainExtension` in versions of `vulkanalia` prior to `v0.31.0`.
 use vulkanalia::vk::KhrSwapchainExtensionDeviceCommands;
 
-use crate::model::load_model;
+use crate::model::{Skeleton, load_skeleton};
 use crate::vulkan::attachment::{create_color_objects, create_depth_objects};
 use crate::vulkan::buffer::{create_index_buffer, create_uniform_buffers, create_vertex_buffer};
 use crate::vulkan::command::{
@@ -52,12 +52,13 @@ pub struct App {
     pub resized: bool,
     pub new_model: bool,
     start: Instant,
-    models: usize,
+    skeleton: Skeleton,
 }
 
 impl App {
     /// Creates our Vulkan app.
     pub unsafe fn create(window: &Window) -> Result<Self> {
+        let skeleton = Skeleton::human(String::from("test"));
         let loader = LibloadingLoader::new(LIBRARY)?;
         let entry = Entry::new(loader).map_err(|b| anyhow!("{}", b))?;
         let mut data = AppData::default();
@@ -75,7 +76,7 @@ impl App {
         create_color_objects(&instance, &device, &mut data)?;
         create_depth_objects(&instance, &device, &mut data)?;
         create_framebuffers(&device, &mut data)?;
-        load_model(&mut data)?;
+        load_skeleton(&skeleton, &mut data)?;
         create_vertex_buffer(&instance, &device, &mut data)?;
         create_index_buffer(&instance, &device, &mut data)?;
         create_uniform_buffers(&instance, &device, &mut data)?;
@@ -94,7 +95,7 @@ impl App {
             resized: false,
             new_model: false,
             start: Instant::now(),
-            models: 1,
+            skeleton: skeleton,
         })
     }
 
