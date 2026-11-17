@@ -2,6 +2,7 @@ use anyhow::{Context, Result};
 
 use crate::model::bone::Bone;
 
+#[derive(Debug, Clone)]
 pub struct Skeleton {
     label: String,
     bones: Vec<Bone>,
@@ -21,8 +22,13 @@ impl Skeleton {
         Skeleton { label, bones }
     }
 
-    pub const fn human(label: String) -> Self {
-        todo!();
+    pub fn human(label: String) -> Self {
+        let bones: Vec<Bone> = vec![
+            Bone::from_dimension(String::from("tete"), 0, 10.0, 1.0, 10.0),
+            Bone::from_dimension(String::from("torse"), 1, 1.0, 30.0, 50.0),
+        ];
+
+        Skeleton::from_bones(label, bones)
         // TODO: Créer les os avec les fonctions associées - HEAD, TORSO, 2ARMS, 2 LEGS.
         // + Ajouter les positions des bones.
     }
@@ -31,6 +37,10 @@ impl Skeleton {
 // ── Methods ─────────────────────────────────────────────────────────────────
 
 impl Skeleton {
+    pub fn bones(&self) -> &[Bone] {
+        &self.bones
+    }
+
     pub fn add_bone(mut self, bone: Bone) -> Self {
         self.bones.push(bone);
         self
