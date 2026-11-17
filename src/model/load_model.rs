@@ -22,7 +22,7 @@ const BLUE: Vec3 = vec3(0.0, 0.0, 255.0);
 #[derive(Copy, Clone, Debug)]
 pub struct Vertex {
     pos: Vec3,
-    color: Vec3,
+    pub color: Vec3,
     tex_coord: Vec2,
 }
 

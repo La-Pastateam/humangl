@@ -55,7 +55,7 @@ impl App {
 
 
         // Render UI
-        self.ui_system.draw_window(&self.data);
+        self.ui_system.draw_window(&mut self.data);
 
         self.update_command_buffer(image_index)?;
         self.update_uniform_buffer(image_index)?;

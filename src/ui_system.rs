@@ -1,4 +1,4 @@
-use imgui::{Context, FontConfig, FontGlyphRanges, FontSource};
+use imgui::{Context, FontConfig, FontGlyphRanges, FontSource, StyleColor};
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
 use winit::window::Window;
 use imgui::internal::RawWrapper;
@@ -44,6 +44,9 @@ pub struct UiSystem {
 
     pub ui_secondary_command_buffers: Vec<vk::CommandBuffer>,
     pub ui_command_pool: vk::CommandPool,
+
+    pub ui_visible: bool,
+    interface_x: f32,
 }
 
 
@@ -65,7 +68,7 @@ impl UiSystem {
         vk::DescriptorSetLayout)> {
         // Get window DPI factor (so the font wont blur)
         let hidpi_factor = platform.hidpi_factor();
-        let font_size = (16.0 * hidpi_factor) as f32;
+        let font_size = (20.0 * hidpi_factor) as f32;
 
         // Load font from file
         let font_data = include_bytes!("../resources/fonts/JetBrainsMono-Medium.ttf");
@@ -387,8 +390,85 @@ impl UiSystem {
         // Get style var
         let style = imgui.style_mut();
 
-        // Use dark mode by default
-        style.use_dark_colors();
+        // ── Field size & Padding ──────────────────────────────────────
+        style.window_padding = [12.0, 12.0];
+        style.frame_padding = [8.0, 6.0];
+        style.item_spacing = [10.0, 8.0];
+        style.item_inner_spacing = [6.0, 4.0];
+        style.grab_min_size = 16.0;
+        style.scrollbar_size = 14.0;
+
+        // Round borders
+        style.window_border_size = 1.0;
+        style.window_border_size = 1.0;
+        style.frame_border_size = 0.0;
+        style.popup_border_size = 1.0;
+        style.frame_rounding = 2.0;
+
+        // Helper to get values in rgba format
+        let rgba = |r: u8, g: u8, b: u8, a: u8| -> [f32; 4] {
+            [
+                r as f32 / 255.0,
+                g as f32 / 255.0,
+                b as f32 / 255.0,
+                a as f32 / 255.0,
+            ]
+        };
+
+        // ── Colors ───────────────────────────────────────────────────
+        style[StyleColor::Text] = rgba(219, 237, 227, 199);
+        style[StyleColor::TextDisabled] = rgba(219, 237, 227, 71);
+        style[StyleColor::WindowBg] = rgba(33, 36, 43, 200);
+        style[StyleColor::ChildBg] = rgba(0, 0, 0, 0);
+        style[StyleColor::PopupBg] = rgba(51, 56, 69, 230);
+        style[StyleColor::Border] = rgba(79, 79, 255, 0);
+        style[StyleColor::BorderShadow] = rgba(0, 0, 0, 0);
+        style[StyleColor::FrameBg] = rgba(51, 56, 69, 255);
+        style[StyleColor::FrameBgHovered] = rgba(186, 66, 12, 199);
+        style[StyleColor::FrameBgActive] = rgba(186, 66, 12, 255);
+        style[StyleColor::TitleBg] = rgba(51, 56, 69, 255);
+        style[StyleColor::TitleBgActive] = rgba(186, 66, 12, 255);
+        style[StyleColor::TitleBgCollapsed] = rgba(51, 56, 69, 191);
+        style[StyleColor::MenuBarBg] = rgba(51, 56, 69, 120);
+        style[StyleColor::ScrollbarBg] = rgba(51, 56, 69, 255);
+        style[StyleColor::ScrollbarGrab] = rgba(23, 38, 41, 255);
+        style[StyleColor::ScrollbarGrabHovered] = rgba(186, 66, 12, 255);
+        style[StyleColor::ScrollbarGrabActive] = rgba(186, 66, 12, 255);
+        style[StyleColor::CheckMark] = rgba(186, 87, 43, 255);
+        style[StyleColor::SliderGrab] = rgba(120, 196, 212, 36);
+        style[StyleColor::SliderGrabActive] = rgba(96, 30, 0, 255);
+        style[StyleColor::Button] = rgba(120, 196, 212, 36);
+        style[StyleColor::ButtonHovered] = rgba(186, 66, 12, 255);
+        style[StyleColor::ButtonActive] = rgba(186, 66, 12, 255);
+        style[StyleColor::Header] = rgba(186, 66, 12, 255);
+        style[StyleColor::HeaderHovered] = rgba(186, 66, 12, 255);
+        style[StyleColor::HeaderActive] = rgba(186, 66, 12, 255);
+        style[StyleColor::Separator] = rgba(36, 41, 48, 255);
+        style[StyleColor::SeparatorHovered] = rgba(186, 66, 12, 255);
+        style[StyleColor::SeparatorActive] = rgba(186, 66, 12, 255);
+        style[StyleColor::ResizeGrip] = rgba(120, 196, 212, 10);
+        style[StyleColor::ResizeGripHovered] = rgba(186, 66, 12, 255);
+        style[StyleColor::ResizeGripActive] = rgba(186, 66, 12, 255);
+        style[StyleColor::Tab] = rgba(94, 40, 25, 220);
+        style[StyleColor::TabHovered] = rgba(98, 24, 4, 220);
+        style[StyleColor::TabActive] = rgba(46, 19, 12, 220);
+        style[StyleColor::TabUnfocused] = rgba(17, 26, 38, 248);
+        style[StyleColor::TabUnfocusedActive] = rgba(35, 67, 108, 255);
+        style[StyleColor::PlotLines] = rgba(219, 237, 227, 161);
+        style[StyleColor::PlotLinesHovered] = rgba(186, 66, 12, 255);
+        style[StyleColor::PlotHistogram] = rgba(219, 237, 227, 161);
+        style[StyleColor::PlotHistogramHovered] = rgba(186, 66, 12, 255);
+        style[StyleColor::TableHeaderBg] = rgba(48, 48, 51, 255);
+        style[StyleColor::TableBorderStrong] = rgba(79, 79, 89, 255);
+        style[StyleColor::TableBorderLight] = rgba(59, 59, 64, 255);
+        style[StyleColor::TableRowBg] = rgba(0, 0, 0, 0);
+        style[StyleColor::TableRowBgAlt] = rgba(255, 255, 255, 15);
+        style[StyleColor::TextSelectedBg] = rgba(186, 66, 12, 255);
+        style[StyleColor::DragDropTarget] = rgba(255, 255, 0, 230);
+        style[StyleColor::NavHighlight] = rgba(66, 150, 250, 255);
+        style[StyleColor::NavWindowingHighlight] = rgba(255, 255, 255, 179);
+        style[StyleColor::NavWindowingDimBg] = rgba(204, 204, 204, 51);
+        style[StyleColor::ModalWindowDimBg] = rgba(51, 56, 69, 186);
     }
 
     pub unsafe fn new(
@@ -484,6 +564,8 @@ impl UiSystem {
             descriptor_set_layout,
             ui_secondary_command_buffers,
             ui_command_pool,
+            ui_visible: true,
+            interface_x: 300.0,
         })
     }
 
@@ -699,16 +781,36 @@ impl UiSystem {
         Ok(command_buffer)
     }
 
-    pub unsafe fn draw_window(&mut self, data: &AppData) {
+    pub unsafe fn draw_window(&mut self, data: &mut AppData) {
+
         // Render UI
         let ui = self.imgui.frame();
+        if self.ui_visible {
 
-        // Prepare window
-        ui.window("Window params")
-            .size([300.0, 100.0], imgui::Condition::FirstUseEver)
-            .build(|| {
-                ui.show_default_style_editor();
-            });
+            let display_size = ui.io().display_size;
+            let mut current_interface_x = self.interface_x;
+
+            if let Some(vertex) = data.vertices.last_mut() {
+                let mut colors = vertex.color;
+
+                // Prepare window
+                ui.window("Editor")
+                    .size([current_interface_x, display_size[1] + 50.0], imgui::Condition::Always)
+                    .position([0.0, 0.0], imgui::Condition::Always)
+                    .flags(
+                        imgui::WindowFlags::NO_MOVE
+                        | imgui::WindowFlags::NO_COLLAPSE
+                    )
+                    .build(|| {
+                        current_interface_x = ui.window_size()[0];
+                        ui.slider("Red", 0.0, 255.0, &mut colors[0]);
+                        ui.slider("Green", 0.0, 255.0, &mut colors[1]);
+                        ui.slider("Blue", 0.0, 255.0, &mut colors[2]);
+                    });
+                self.interface_x = current_interface_x;
+                vertex.color = colors;
+            }
+        }
     }
 
     pub unsafe fn destroy(&mut self, device: &Device) {
