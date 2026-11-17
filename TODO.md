@@ -2,9 +2,13 @@
 
 * **I.** Remettre en forme le projet vulkanalia pour accueillir HumanGl
 * **II.** Créer des modèles a partir d'une fonction et setup les membres.
-* **III.** Préparer la Mutant Stack (Matrice Stack).
-* **IV.** Ajouter une interface de modification des modèles.
-* **V.** Finitions
+ A. Bones
+ B. Skeleton
+ C. Verifications
+* **III.** Rebdre Graphique le Skeelton
+* **IV.** Préparer la Mutant Stack (Matrice Stack).
+* **V.** Ajouter une interface de modification des modèles.
+* **VI.** Finitions
 
 ## I. Remettre en forme vulkanalia -> tcros
 
@@ -17,9 +21,8 @@
 ### A. Bones
 
 * Créer une structure ~"Membre"~ "Bone" -> ObjModel, ~~points d'accroche~~ matrice transformation homogène ✅
-* Modifier ObjModel pour l'optimiser pour les Bones
-* fonction qui crée un modèle à partir de sa taille (l, `L, h)
-* fonction qui permet de resize l'objModel ?
+* Modifier ObjModel pour l'optimiser pour les Bones ✅
+* fonction qui crée un modèle à partir de sa taille (l, `L, h) ✅
 * fonction qui accroche ce modèle à un autre objet/position de départ.
 
 ### B. Skeleton
@@ -30,10 +33,13 @@
 ### C. Vérif all
 
 * Ajouter les fonctions utilitaires de Bones et Skeleton
+* fonction qui permet de resize l'objModel ?
 
 ## **III.** Rendre Graphique le skeleton
 
-* Supprimer la gestion des modèles par fichier local
+* Supprimer la gestion des modèles par fichier local✅
+* Ajouter le skeleton comme objet à render : l'app contient 1 skeleton qui ensuite render tous ses bones
+* possibilité d'afficher plusieurs models.
 * Ajouter le model skeleton à la swapchain.
 *
 

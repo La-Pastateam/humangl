@@ -6,12 +6,13 @@ struct QuadFacePos {
     vertices: [usize; 4],
 }
 
+#[derive(Debug, PartialEq, Clone)]
 pub struct Model {
     pub obj_model: ObjModel,
     pub color: Vec3,
-    pub length: f32,
     pub width: f32,
     pub height: f32,
+    pub depth: f32,
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -45,16 +46,18 @@ const CUBE_FACES: [QuadFacePos; 6] = [
 
 // ── Model Creation ─────────────────────────────────────────────────────────────────
 
-fn create_vertices(length: f32, width: f32, height: f32) -> Vec<[f32; 3]> {
+fn create_vertices(width: f32, height: f32, depth: f32) -> Vec<[f32; 3]> {
+    let hw = width / 2.0;
+    let hd = depth / 2.0;
     vec![
-        [0.0, 0.0, 0.0],
-        [0.0, 0.0, height],
-        [0.0, width, 0.0],
-        [0.0, width, height],
-        [length, 0.0, 0.0],
-        [length, 0.0, height],
-        [length, width, 0.0],
-        [length, width, height],
+        [-hw, -height, -hd],
+        [-hw, -height, hd],
+        [-hw, 0.0, -hd],
+        [-hw, 0.0, hd],
+        [hw, -height, -hd],
+        [hw, -height, hd],
+        [hw, 0.0, -hd],
+        [hw, 0.0, hd],
     ]
 }
 
@@ -91,8 +94,8 @@ fn create_faces() -> Vec<[FaceVertex; 3]> {
 }
 
 impl Model {
-    pub fn new(length: f32, width: f32, height: f32, color: Vec3) -> Self {
-        let positions: Vec<[f32; 3]> = create_vertices(length, width, height);
+    pub fn new(width: f32, height: f32, depth: f32, color: Vec3) -> Self {
+        let positions: Vec<[f32; 3]> = create_vertices(width, height, depth);
         let normals = create_normals();
         let tex_coords: Vec<[f32; 2]> = Vec::new();
         let faces = create_faces();
@@ -107,9 +110,18 @@ impl Model {
         Self {
             obj_model,
             color,
-            length,
             width,
             height,
+            depth,
         }
+    }
+}
+
+// ── Methods ─────────────────────────────────────────────────────────────────
+
+impl Model {
+    pub fn change_color(&mut self, color: Vec3) -> &Self {
+        self.color = color;
+        self
     }
 }

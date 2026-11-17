@@ -3,7 +3,7 @@ use std::fs::read_to_string;
 use std::path::PathBuf;
 use thiserror::Error;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ObjModel {
     pub positions: Vec<[f32; 3]>,
     pub tex_coords: Vec<[f32; 2]>,

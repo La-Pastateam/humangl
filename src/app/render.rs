@@ -12,9 +12,15 @@ use winit::window::Window;
 use vulkanalia::vk::KhrSwapchainExtensionDeviceCommands;
 
 use super::App;
-use crate::utils::math::{self, Deg, Mat4, point3, vec3};
+use crate::utils::math::{self, Deg, Mat4, Point3, Vector3, point3, vec3};
 use crate::vulkan::buffer::UniformBufferObject;
 use crate::vulkan::sync::MAX_FRAMES_IN_FLIGHT;
+
+// ── Constants ────────────────────────────────────────────────────────────────────
+
+const EYE: Point3 = point3(0.0, 80.0, 250.0);
+const CENTER: Point3 = point3(0.0, 80.0, 0.0);
+const UP: Vector3 = vec3(0.0, 1.0, 0.0);
 
 // ── Render ────────────────────────────────────────────────────────────────────
 
@@ -164,8 +170,8 @@ impl App {
             vk::SubpassContents::SECONDARY_COMMAND_BUFFERS,
         );
 
-        let secondary_command_buffer = (0..self.models)
-            .map(|i| self.update_secondary_command_buffer(image_index, 0))
+        let secondary_command_buffer = (0..self.skeleton.bones().len())
+            .map(|i| self.update_secondary_command_buffer(image_index, i))
             .collect::<Result<Vec<_>, _>>()?;
         self.device
             .cmd_execute_commands(command_buffer, &secondary_command_buffer[..]);
@@ -206,11 +212,11 @@ impl App {
 
         let time = self.start.elapsed().as_secs_f32();
 
-        let model = Mat4::from_translation(vec3(0.0, 0.0, 0.0))
-            * Mat4::from_axis_angle(vec3(0.0, 0.0, 1.0), Deg(20.0) * time);
+        let transform = Mat4::from_translation(vec3(0.0, 0.0, 0.0))
+            * Mat4::from_axis_angle(vec3(0.0, 1.0, 0.0), Deg(20.0) * time);
 
-        let model_bytes =
-            &*slice_from_raw_parts(&model as *const Mat4 as *const u8, size_of::<Mat4>());
+        let transform_bytes =
+            &*slice_from_raw_parts(&transform as *const Mat4 as *const u8, size_of::<Mat4>());
 
         let inheritance_info = vk::CommandBufferInheritanceInfo::builder()
             .render_pass(self.data.render_pass)
@@ -252,7 +258,7 @@ impl App {
             self.data.pipeline_layout,
             vk::ShaderStageFlags::VERTEX,
             0,
-            model_bytes,
+            transform_bytes,
         );
         self.device.cmd_push_constants(
             command_buffer,
@@ -271,11 +277,7 @@ impl App {
     unsafe fn update_uniform_buffer(&self, image_index: usize) -> Result<()> {
         let time = self.start.elapsed().as_secs_f32();
 
-        let view = Mat4::look_at_rh(
-            point3(3.0, 2.0, 1.5),
-            point3(0.0, 0.0, 0.0),
-            vec3(0.0, 0.0, 1.0),
-        );
+        let view = Mat4::look_at_rh(EYE, CENTER, UP);
 
         let correction = Mat4::new(
             1.0,
@@ -300,8 +302,8 @@ impl App {
             * math::perspective(
                 Deg(45.0),
                 self.data.swapchain_extent.width as f32 / self.data.swapchain_extent.height as f32,
-                0.1,
-                10.0,
+                5.0,
+                1000.0,
             );
 
         let ubo = UniformBufferObject { view, proj };
