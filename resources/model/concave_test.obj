@@ -1,0 +1,26 @@
+# Fichier de test pour la triangulation de faces concaves (Scop, bonus 1).
+# Deux faces planes (z = 0), chacune décrite par UNE seule ligne "f".
+#
+# Face 1 : un "L" a 6 sommets. Le premier sommet (2, 0) ne "voit" pas
+#          tout le polygone : une triangulation en eventail depuis lui
+#          cree des triangles qui debordent dans l'encoche du "L".
+#
+# Face 2 : une etoile a 5 branches (10 sommets). Le premier sommet est
+#          un sommet INTERIEUR (angle rentrant) : l'eventail depuis lui
+#          recouvre les creux entre les branches.
+#
+# Rendu attendu avec une triangulation correcte : un "L" et une etoile
+# nets, sans aucune surface en dehors de leur contour.
+
+o concave_test
+
+# --- Face 1 : le "L" ---
+v 2.0 0.0 0.0
+v 2.0 1.0 0.0
+v 1.0 1.0 0.0
+v 1.0 2.0 0.0
+v 0.0 2.0 0.0
+v 0.0 0.0 0.0
+
+
+f 1 2 3 4 5 6
