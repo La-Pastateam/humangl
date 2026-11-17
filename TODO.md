@@ -44,13 +44,19 @@
 
 ## **V.** Ajouter une interface de modification des modèles
 
-* Rendre les variables codé en dur en tant que mut, utilisé par l'interfac.
+* Set up le back de l'interface utilisateur ✅
+	- creation de nouvelle pipeline, command buffer, etc...
+	- creation de nouveaux shaders
+	- Compilation auto des shaders dans le ```compile.sh```
+* Set up l'ui à notre goût
+* Rendre les variables codé en dur en tant que mut, utilisé par l'interface.
 * afficher un menu
 * rendre selectionnable les objets afin de les modifier
 
 ## **VI.** Finitions
 
 * Remettre le code bien dans des dossiers (vulkan par exemple)
+* Adapter le main a winit 0.30 ✅
 
 ## **INFO**
 
