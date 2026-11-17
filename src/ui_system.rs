@@ -85,7 +85,7 @@ impl UiSystem {
             },
         ]);
 
-        // Adapt global scal if HiDDI is on
+        // Adapt global scal if HiDPI is on
         imgui.io_mut().font_global_scale = (1.0 / hidpi_factor) as f32;
 
         // Get font pixels from gui
@@ -598,12 +598,18 @@ impl UiSystem {
                     &[],
                 );
 
+                // Get screen info (screen offset, scale, and framebuffer size)
+                let clip_offset = ui_data.display_pos;
+                let clip_scale = ui_data.framebuffer_scale;
+                let fb_width = ui_data.display_size[0] * clip_scale[0];
+                let fb_height = ui_data.display_size[1] * clip_scale[1];
+
                 // Define viewport
                 let viewport = vk::Viewport::builder()
                     .x(0.0)
                     .y(0.0)
-                    .width(data.swapchain_extent.width as f32)
-                    .height(data.swapchain_extent.height as f32)
+                    .width(fb_width )
+                    .height(fb_height)
                     .min_depth(0.0)
                     .max_depth(1.0);
                 device.cmd_set_viewport(command_buffer, 0, &[viewport]);
@@ -628,12 +634,6 @@ impl UiSystem {
                 );
 
                 // -------------------Draw UI----------------------
-                // Get screen info (screen offset, scale, and framebuffer size)
-                let clip_offset = ui_data.display_pos;
-                let clip_scale = ui_data.framebuffer_scale;
-                let fb_width = ui_data.display_size[0] * clip_scale[0];
-                let fb_height = ui_data.display_size[1] * clip_scale[1];
-
                 let mut vtx_offset = 0;
                 let mut idx_offset = 0;
 
@@ -647,10 +647,10 @@ impl UiSystem {
                                 // Get mask rectangle
                                 let clip_rect = cmd_params.clip_rect;
                                 // Calculate coordonates for the frame buffer
-                                let clip_min_x = clip_rect[0] - clip_offset[0] * clip_scale[0];
-                                let clip_min_y = clip_rect[1] - clip_offset[1] * clip_scale[1];
-                                let clip_max_x = clip_rect[2] - clip_offset[0] * clip_scale[0];
-                                let clip_max_y = clip_rect[3] - clip_offset[1] * clip_scale[1];
+                                let clip_min_x = (clip_rect[0] - clip_offset[0]) * clip_scale[0];
+                                let clip_min_y = (clip_rect[1] - clip_offset[1]) * clip_scale[1];
+                                let clip_max_x = (clip_rect[2] - clip_offset[0]) * clip_scale[0];
+                                let clip_max_y = (clip_rect[3] - clip_offset[1]) * clip_scale[1];
 
                                 // Check if we need to draw this window
                                 if clip_max_x > clip_min_x && clip_max_y > clip_min_y {
@@ -699,7 +699,7 @@ impl UiSystem {
         Ok(command_buffer)
     }
 
-    pub unsafe fn draw_window(&mut self) {
+    pub unsafe fn draw_window(&mut self, data: &AppData) {
         // Render UI
         let ui = self.imgui.frame();
 

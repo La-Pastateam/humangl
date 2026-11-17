@@ -55,7 +55,7 @@ impl App {
 
 
         // Render UI
-        self.ui_system.draw_window();
+        self.ui_system.draw_window(&self.data);
 
         self.update_command_buffer(image_index)?;
         self.update_uniform_buffer(image_index)?;
@@ -92,8 +92,7 @@ impl App {
         let changed = result == Ok(vk::SuccessCode::SUBOPTIMAL_KHR)
             || result == Err(vk::ErrorCode::OUT_OF_DATE_KHR);
 
-        if self.resized || changed {
-            self.resized = false;
+        if changed {
             self.recreate_swapchain(window)?;
         } else if let Err(e) = result {
             return Err(anyhow!(e));
