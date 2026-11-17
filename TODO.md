@@ -19,6 +19,7 @@
 * Créer une structure ~"Membre"~ "Bone" -> ObjModel, ~~points d'accroche~~ matrice transformation homogène ✅
 * Modifier ObjModel pour l'optimiser pour les Bones
 * fonction qui crée un modèle à partir de sa taille (l, `L, h)
+* fonction qui permet de resize l'objModel ?
 * fonction qui accroche ce modèle à un autre objet/position de départ.
 
 ### B. Skeleton

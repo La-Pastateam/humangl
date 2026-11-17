@@ -5,12 +5,16 @@ use anyhow::Result;
 use vulkanalia::prelude::v1_0::*;
 
 use crate::app::AppData;
-use crate::parser::obj::{self, FaceVertex, ObjModel};
+use crate::model::Model;
+use crate::parser::obj::{self, FaceVertex};
 use crate::utils::math::{Vec2, Vec3, vec2, vec3};
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const TARGET_SIZE: f32 = 1.50;
+const RED: Vec3 = vec3(255.0, 0.0, 0.0);
+const GREEN: Vec3 = vec3(0.0, 255.0, 0.0);
+const BLUE: Vec3 = vec3(0.0, 0.0, 255.0);
 
 // ── Vertex Data ─────────────────────────────────────────────────────────────────
 
@@ -66,11 +70,11 @@ impl Vertex {
 
 // ── Model Loading ─────────────────────────────────────────────────────────────────
 
-fn build_vertex(models: &ObjModel, fv: &FaceVertex, center: [f32; 3], facteur: f32) -> Vertex {
-    let model_pos = models.positions[fv.position_index];
+fn build_vertex(model: &Model, fv: &FaceVertex, center: [f32; 3], facteur: f32) -> Vertex {
+    let model_pos = model.obj_model.positions[fv.position_index];
     let tex_coord = match fv.tex_coord_index {
         Some(i) => {
-            let model_vert = models.tex_coords[i];
+            let model_vert = model.obj_model.tex_coords[i];
             vec2(model_vert[0], 1.0 - model_vert[1])
         }
         None => vec2(0.0, 0.0),
@@ -82,16 +86,16 @@ fn build_vertex(models: &ObjModel, fv: &FaceVertex, center: [f32; 3], facteur: f
             (model_pos[1] - center[1]) * facteur,
             (model_pos[2] - center[2]) * facteur,
         ),
-        color: vec3(1.0, 1.5, 1.75),
+        color: model.color,
         tex_coord,
     }
 }
 
 pub fn load_model(data: &mut AppData) -> Result<()> {
-    let model = obj::parse_obj(&data.image_path)?;
+    let model = Model::new(10.0, 5.0, 10.0, GREEN);
 
-    let (min, max) = obj::compute_bounding_box(&model.positions);
-    let center = obj::compute_centroid(&model.positions);
+    let (min, max) = obj::compute_bounding_box(&model.obj_model.positions);
+    let center = obj::compute_centroid(&model.obj_model.positions);
     let etendu: [f32; 3] = [max[0] - min[0], max[1] - min[1], max[2] - min[2]];
     let etendu_max = etendu[0].max(etendu[1]).max(etendu[2]);
     let facteur: f32 = if etendu_max > f32::EPSILON {
@@ -102,7 +106,7 @@ pub fn load_model(data: &mut AppData) -> Result<()> {
 
     let mut unique_vertices = HashMap::new();
 
-    for face in &model.faces {
+    for face in &model.obj_model.faces {
         for fv in face {
             if let Some(i) = unique_vertices.get(fv) {
                 data.indices.push(*i as u32);

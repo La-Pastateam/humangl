@@ -3,7 +3,6 @@ mod render;
 
 pub use data::AppData;
 
-use std::path::PathBuf;
 use std::time::Instant;
 
 use anyhow::{Result, anyhow};
@@ -41,8 +40,6 @@ use crate::ui_system::UiSystem;
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const DEFAULT_MODEL: &str = "resources/model/42.obj";
-
 // ── App ───────────────────────────────────────────────────────────────────────
 
 /// Our Vulkan app.
@@ -67,7 +64,6 @@ impl App {
         let mut data = AppData::default();
         let instance = create_instance(window, &entry, &mut data)?;
         data.surface = vk_window::create_surface(&instance, &window, &window)?;
-        data.image_path = PathBuf::from(DEFAULT_MODEL);
         pick_physical_device(&instance, &mut data)?;
         let device = create_logical_device(&entry, &instance, &mut data)?;
         create_swapchain(window, &instance, &device, &mut data)?;
