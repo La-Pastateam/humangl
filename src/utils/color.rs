@@ -1,6 +1,6 @@
 use crate::utils::math::Vec3;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct RGBA {
     r: u8,
     g: u8,
