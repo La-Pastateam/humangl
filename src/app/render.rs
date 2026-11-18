@@ -59,7 +59,6 @@ impl App {
 
         self.data.images_in_flight[image_index] = self.data.in_flight_fences[self.frame];
 
-
         // Render UI
         self.ui_system.draw_window(&mut self.data);
 
@@ -170,7 +169,7 @@ impl App {
             vk::SubpassContents::SECONDARY_COMMAND_BUFFERS,
         );
 
-        let secondary_command_buffer = (0..self.skeleton.bones().len())
+        let secondary_command_buffer = (0..1)
             .map(|i| self.update_secondary_command_buffer(image_index, i))
             .collect::<Result<Vec<_>, _>>()?;
         self.device

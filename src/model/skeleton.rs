@@ -1,6 +1,5 @@
 use anyhow::{Context, Result};
 
-use crate::model::Model;
 use crate::model::bone::Bone;
 use crate::utils::color::RGB;
 
@@ -25,26 +24,11 @@ impl Skeleton {
     }
 
     pub fn human(label: String) -> Self {
+        todo!();
         let arms_color = RGB::new(100, 100, 100).to_vec();
         let legs_color = RGB::new(150, 150, 150).to_vec();
 
-        let upperarm_model = Model::new(9.0, 28.0, 9.0, arms_color);
-        let forearm_model = Model::new(7.5, 25.0, 7.5, arms_color);
-        let thigh_model = Model::new(14.5, 42.0, 15.5, legs_color);
-        let lowerleg_model = Model::new(10.5, 42.0, 11.0, legs_color);
-
-        let mut bones: Vec<Bone> = vec![
-            Bone::from_dimension(String::from("Torso"), 0, 34.0, 52.0, 21.0),
-            Bone::from_dimension(String::from("Head"), 1, 16.0, 20.0, 18.5),
-            Bone::new(String::from("RightUpperArm"), 2, upperarm_model.clone()),
-            Bone::new(String::from("RightForeArm"), 3, forearm_model.clone()),
-            Bone::new(String::from("LeftUpperArm"), 4, upperarm_model),
-            Bone::new(String::from("LeftForeArm"), 5, forearm_model),
-            Bone::new(String::from("RightThigh"), 6, thigh_model.clone()),
-            Bone::new(String::from("RightLowerLeg"), 7, lowerleg_model.clone()),
-            Bone::new(String::from("LeftThigh"), 8, thigh_model),
-            Bone::new(String::from("LeftLowerLeg"), 9, lowerleg_model),
-        ];
+        let mut bones: Vec<Bone> = vec![];
 
         bones[1].add_parent(0);
         bones[2].add_parent(0);

@@ -16,12 +16,17 @@ use crate::utils::math::{Vec2, Vec3, vec2, vec3};
 #[derive(Copy, Clone, Debug)]
 pub struct Vertex {
     pos: Vec3,
+    pub color: Vec3,
     tex_coord: Vec2,
 }
 
 impl Vertex {
-    const fn new(pos: Vec3, tex_coord: Vec2) -> Self {
-        Self { pos, tex_coord }
+    const fn new(pos: Vec3, color: Vec3, tex_coord: Vec2) -> Self {
+        Self {
+            pos,
+            color,
+            tex_coord,
+        }
     }
 
     pub fn binding_description() -> vk::VertexInputBindingDescription {
@@ -71,6 +76,7 @@ fn build_vertex(model: &ObjModel, fv: &FaceVertex) -> Vertex {
 
     Vertex {
         pos: vec3(model_pos[0], model_pos[1], model_pos[2]),
+        color: vec3(0.3, 0.3, 0.3),
         tex_coord,
     }
 }
