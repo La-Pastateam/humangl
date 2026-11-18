@@ -1,6 +1,6 @@
 mod box_mesh;
 mod load_model;
-pub use load_model::{Vertex, load_skeleton};
+pub use load_model::Vertex;
 
 mod bone;
 mod skeleton;
