@@ -1,6 +1,7 @@
 use crate::utils::math::Vec3;
 
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RGBA {
     r: u8,
     g: u8,
@@ -25,5 +26,13 @@ impl RGBA {
             y: self.g as f32 / 255.0,
             z: self.b as f32 / 255.0,
         }
+    }
+}
+
+// ── Trait Implementations ─────────────────────────────────────────────────────────────────
+
+impl Default for RGBA {
+    fn default() -> Self {
+        RGBA::new(255, 255, 255, 255)
     }
 }
