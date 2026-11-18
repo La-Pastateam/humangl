@@ -1,5 +1,5 @@
 use crate::utils::color::RGB;
-use crate::utils::math::Matrix4;
+use crate::utils::math::{Matrix4, Vector3};
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Bone {
@@ -8,32 +8,13 @@ pub struct Bone {
     pub parent_id: Option<usize>,
     pub transform: Matrix4,
     pub color: RGB,
-    pub dimension: (f32, f32, f32),
+    pub dimension: Vector3,
 }
 
 // ── Associated Functions ─────────────────────────────────────────────────────────────────
 
 impl Bone {
-    pub fn new(label: String, id: usize, color: RGB, dimension: (f32, f32, f32)) -> Self {
-        Bone {
-            label,
-            id,
-            parent_id: None,
-            transform: Matrix4::identity(),
-            color,
-            dimension,
-        }
-    }
-
-    pub fn from_dimension(label: String, id: usize, width: f32, height: f32, depth: f32) -> Self {
-        // TODO: Revoir la gestion des couleurs, acutellement temporaire pour voir les différences.
-        let color = RGB::new(
-            (((id + 1) * 90) % 255) as u8,
-            (((id + 1) * 10) % 255) as u8,
-            (((id + 1) * 30) % 255) as u8,
-        );
-        let dimension = (width, height, depth);
-
+    pub fn new(label: String, id: usize, color: RGB, dimension: Vector3) -> Self {
         Bone {
             label,
             id,
