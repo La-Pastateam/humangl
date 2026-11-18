@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 
 use crate::model::bone::Bone;
-use crate::utils::color::RGB;
+use crate::utils::color::RGBA;
 use crate::utils::math::vec3;
 
 #[derive(Debug, Clone)]
@@ -25,10 +25,10 @@ impl Skeleton {
     }
 
     pub fn human(label: String) -> Self {
-        let head_color = RGB::new(50, 150, 50, 255);
-        let torso_color = RGB::new(50, 50, 50, 255);
-        let arms_color = RGB::new(100, 100, 100, 255);
-        let legs_color = RGB::new(150, 150, 150, 255);
+        let head_color = RGBA::new(50, 150, 50, 255);
+        let torso_color = RGBA::new(50, 50, 50, 255);
+        let arms_color = RGBA::new(100, 100, 100, 255);
+        let legs_color = RGBA::new(150, 150, 150, 255);
 
         let upperarm_dim = vec3(9.0, 28.0, 9.0);
         let forearm_dim = vec3(7.5, 25.0, 7.5);
