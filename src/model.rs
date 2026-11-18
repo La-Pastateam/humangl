@@ -1,7 +1,7 @@
-mod create_model;
-pub use create_model::Model;
+mod box_mesh;
+pub use box_mesh::BoxMesh;
 mod load_model;
-pub use load_model::{Vertex, load_skeleton};
+pub use load_model::{Vertex, load_model};
 
 mod bone;
 mod skeleton;

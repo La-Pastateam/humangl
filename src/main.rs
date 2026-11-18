@@ -98,7 +98,7 @@ impl ApplicationHandler for GeneralApp {
         match event {
             // Render a frame if our Vulkan app is not being destroyed.
             WindowEvent::RedrawRequested if !event_loop.exiting() && !self.minimized => {
-                if let Err(e) = unsafe { app.render(&window) } {
+                if let Err(e) = unsafe { app.render(window) } {
                     error!("{e:#}");
                     process::exit(1);
                 }
@@ -117,9 +117,8 @@ impl ApplicationHandler for GeneralApp {
             }
 
             WindowEvent::KeyboardInput { event, .. }
-                if event.state == ElementState::Pressed =>
-            {
-                if !app.ui_system.imgui.io().want_capture_keyboard {
+                if event.state == ElementState::Pressed
+                && !app.ui_system.imgui.io().want_capture_keyboard => {
                     match handle_input(event.physical_key, &mut app.data) {
                         Ok(Signal::ToggleUi) => app.ui_system.ui_visible = !app.ui_system.ui_visible,
                         Ok(Signal::Nothing) => {}
@@ -131,7 +130,6 @@ impl ApplicationHandler for GeneralApp {
                         }
                     };
                 }
-            }
             _ => {}
         }
 

@@ -96,7 +96,7 @@ impl UiSystem {
         let font_atlas = fonts.build_rgba32_texture();
 
         // Staging buffer to store data in GPU later
-        let image_size = (font_atlas.data.len() * std::mem::size_of::<u8>()) as vk::DeviceSize;
+        let image_size = std::mem::size_of_val(font_atlas.data) as vk::DeviceSize;
         let (staging_buffer, staging_buffer_memory) = create_buffer(
             instance,
             device,
@@ -644,8 +644,8 @@ impl UiSystem {
         device.begin_command_buffer(command_buffer, &info)?;
 
         // Check screen size and if there is something to display
-        if ui_data.display_size[0] > 0.0 && ui_data.display_size[1] > 0.0 {
-            if required_vtx_size > 0 && required_idx_size > 0 {
+        if ui_data.display_size[0] > 0.0 && ui_data.display_size[1] > 0.0
+            && required_vtx_size > 0 && required_idx_size > 0 {
                 // Init Copy Vertex/Index buffers
                 let vtx_memory = device.map_memory(self.vertex_buffer_memory, 0, required_vtx_size, vk::MemoryMapFlags::empty())?;
                 let mut vtx_dest = vtx_memory.cast::<imgui::DrawVert>();
@@ -775,7 +775,6 @@ impl UiSystem {
                     idx_offset += draw_list.idx_buffer().len();
                 }
             }
-        }
 
         device.end_command_buffer(command_buffer)?;
         Ok(command_buffer)

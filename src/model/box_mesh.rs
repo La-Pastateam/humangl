@@ -1,23 +1,18 @@
 use crate::parser::obj::{FaceVertex, ObjModel};
-use crate::utils::math::Vec3;
 
 struct QuadFacePos {
     normal: usize,
     vertices: [usize; 4],
 }
 
-#[derive(Debug, PartialEq, Clone)]
-pub struct Model {
-    pub obj_model: ObjModel,
-    pub color: Vec3,
-    pub width: f32,
-    pub height: f32,
-    pub depth: f32,
+#[derive(Default, Debug, PartialEq, Clone)]
+pub struct BoxMesh {
+    model: ObjModel,
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const CUBE_FACES: [QuadFacePos; 6] = [
+const BOXMESH_FACES: [QuadFacePos; 6] = [
     QuadFacePos {
         normal: 1,
         vertices: [0, 1, 3, 2],
@@ -44,36 +39,30 @@ const CUBE_FACES: [QuadFacePos; 6] = [
     },
 ];
 
-// ── Model Creation ─────────────────────────────────────────────────────────────────
+const BOXMESH_VERTICES: [[f32; 3]; 8] = [
+    [-0.5, -0.5, -0.5],
+    [-0.5, -0.5, 0.5],
+    [-0.5, 0.5, -0.5],
+    [-0.5, 0.5, 0.5],
+    [0.5, -0.5, -0.5],
+    [0.5, -0.5, 0.5],
+    [0.5, 0.5, -0.5],
+    [0.5, 0.5, 0.5],
+];
 
-fn create_vertices(width: f32, height: f32, depth: f32) -> Vec<[f32; 3]> {
-    let hw = width / 2.0;
-    let hd = depth / 2.0;
-    vec![
-        [-hw, -height, -hd],
-        [-hw, -height, hd],
-        [-hw, 0.0, -hd],
-        [-hw, 0.0, hd],
-        [hw, -height, -hd],
-        [hw, -height, hd],
-        [hw, 0.0, -hd],
-        [hw, 0.0, hd],
-    ]
-}
+const BOXMESH_NORMALS: [[f32; 3]; 6] = [
+    [1.0, 0.0, 0.0],
+    [-1.0, 0.0, 0.0],
+    [0.0, 1.0, 0.0],
+    [0.0, -1.0, 0.0],
+    [0.0, 0.0, 1.0],
+    [0.0, 0.0, -1.0],
+];
 
-fn create_normals() -> Vec<[f32; 3]> {
-    vec![
-        [1.0, 0.0, 0.0],
-        [-1.0, 0.0, 0.0],
-        [0.0, 1.0, 0.0],
-        [0.0, -1.0, 0.0],
-        [0.0, 0.0, 1.0],
-        [0.0, 0.0, -1.0],
-    ]
-}
+// ── BoxMesh Creation ─────────────────────────────────────────────────────────────────
 
 fn create_faces() -> Vec<[FaceVertex; 3]> {
-    CUBE_FACES
+    BOXMESH_FACES
         .iter()
         .flat_map(|face| {
             let normal = Some(face.normal);
@@ -90,38 +79,31 @@ fn create_faces() -> Vec<[FaceVertex; 3]> {
                 ],
             ]
         })
-        .collect::<Vec<_>>()
+        .collect()
 }
 
-impl Model {
-    pub fn new(width: f32, height: f32, depth: f32, color: Vec3) -> Self {
-        let positions: Vec<[f32; 3]> = create_vertices(width, height, depth);
-        let normals = create_normals();
+impl BoxMesh {
+    pub fn new() -> Self {
+        let positions: Vec<[f32; 3]> = BOXMESH_VERTICES.to_vec();
+        let normals = BOXMESH_NORMALS.to_vec();
         let tex_coords: Vec<[f32; 2]> = Vec::new();
         let faces = create_faces();
 
-        let obj_model = ObjModel {
+        let model = ObjModel {
             positions,
             tex_coords,
             normals,
             faces,
         };
 
-        Self {
-            obj_model,
-            color,
-            width,
-            height,
-            depth,
-        }
+        Self { model }
     }
 }
 
 // ── Methods ─────────────────────────────────────────────────────────────────
 
-impl Model {
-    pub fn change_color(&mut self, color: Vec3) -> &Self {
-        self.color = color;
-        self
+impl BoxMesh {
+    pub fn model(&self) -> &ObjModel {
+        &self.model
     }
 }

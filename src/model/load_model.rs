@@ -5,8 +5,7 @@ use anyhow::Result;
 use vulkanalia::prelude::v1_0::*;
 
 use crate::app::AppData;
-use crate::model::{Model, Skeleton};
-use crate::parser::obj::FaceVertex;
+use crate::parser::obj::{FaceVertex, ObjModel};
 use crate::utils::math::{Vec2, Vec3, vec2, vec3};
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -65,11 +64,11 @@ impl Vertex {
 
 // ── Model Loading ─────────────────────────────────────────────────────────────────
 
-fn build_vertex(model: &Model, fv: &FaceVertex) -> Vertex {
-    let model_pos = model.obj_model.positions[fv.position_index];
+fn build_vertex(model: &ObjModel, fv: &FaceVertex) -> Vertex {
+    let model_pos = model.positions[fv.position_index];
     let tex_coord = match fv.tex_coord_index {
         Some(i) => {
-            let model_vert = model.obj_model.tex_coords[i];
+            let model_vert = model.tex_coords[i];
             vec2(model_vert[0], 1.0 - model_vert[1])
         }
         None => vec2(0.0, 0.0),
@@ -77,15 +76,15 @@ fn build_vertex(model: &Model, fv: &FaceVertex) -> Vertex {
 
     Vertex {
         pos: vec3(model_pos[0], model_pos[1], model_pos[2]),
-        color: model.color,
+        color: vec3(0.3, 0.3, 0.3),
         tex_coord,
     }
 }
 
-pub fn load_model(data: &mut AppData, model: &Model) -> Result<()> {
+pub fn load_model(data: &mut AppData, model: &ObjModel) -> Result<()> {
     let mut unique_vertices = HashMap::new();
 
-    for face in &model.obj_model.faces {
+    for face in &model.faces {
         for fv in face {
             if let Some(i) = unique_vertices.get(fv) {
                 data.indices.push(*i as u32);
@@ -97,13 +96,6 @@ pub fn load_model(data: &mut AppData, model: &Model) -> Result<()> {
                 data.indices.push(index as u32);
             }
         }
-    }
-    Ok(())
-}
-
-pub fn load_skeleton(skeleton: &Skeleton, data: &mut AppData) -> Result<()> {
-    for bone in skeleton.bones() {
-        load_model(data, &bone.model)?;
     }
     Ok(())
 }

@@ -1,22 +1,24 @@
 use crate::utils::math::Vec3;
 
-pub struct RGB {
+#[derive(Debug, Clone, PartialEq)]
+pub struct RGBA {
     r: u8,
     g: u8,
     b: u8,
+    a: u8,
 }
 
 // ── Associated Functions ─────────────────────────────────────────────────────────────────
 
-impl RGB {
-    pub fn new(r: u8, g: u8, b: u8) -> Self {
-        Self { r, g, b }
+impl RGBA {
+    pub fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
+        Self { r, g, b, a }
     }
 }
 
 // ── Methods ─────────────────────────────────────────────────────────────────
 
-impl RGB {
+impl RGBA {
     pub fn to_vec(&self) -> Vec3 {
         Vec3 {
             x: self.r as f32 / 255.0,

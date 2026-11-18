@@ -1,5 +1,4 @@
 use std::mem::size_of;
-use std::ptr::slice_from_raw_parts;
 
 // NOTE: From the STD Lib to copy memory of the vertex list to the mapped memory
 use std::ptr::copy_nonoverlapping as memcpy;
@@ -58,7 +57,6 @@ impl App {
         }
 
         self.data.images_in_flight[image_index] = self.data.in_flight_fences[self.frame];
-
 
         // Render UI
         self.ui_system.draw_window(&mut self.data);
@@ -210,21 +208,10 @@ impl App {
 
         let command_buffer = command_buffers[model_index];
 
-        let time = self.start.elapsed().as_secs_f32();
-
-        let transform = Mat4::from_translation(vec3(0.0, 0.0, 0.0))
-            * Mat4::from_axis_angle(vec3(0.0, 1.0, 0.0), Deg(20.0) * time);
-
-        let transform_bytes =
-            &*slice_from_raw_parts(&transform as *const Mat4 as *const u8, size_of::<Mat4>());
-
         let inheritance_info = vk::CommandBufferInheritanceInfo::builder()
             .render_pass(self.data.render_pass)
             .subpass(0)
             .framebuffer(self.data.framebuffers[image_index]);
-
-        let opacity = (model_index + 1) as f32;
-        let opacity_bytes = &opacity.to_ne_bytes()[..];
 
         let info = vk::CommandBufferBeginInfo::builder()
             .flags(vk::CommandBufferUsageFlags::RENDER_PASS_CONTINUE)
@@ -253,22 +240,10 @@ impl App {
             &[self.data.descriptor_sets[image_index]],
             &[],
         );
-        self.device.cmd_push_constants(
-            command_buffer,
-            self.data.pipeline_layout,
-            vk::ShaderStageFlags::VERTEX,
-            0,
-            transform_bytes,
-        );
-        self.device.cmd_push_constants(
-            command_buffer,
-            self.data.pipeline_layout,
-            vk::ShaderStageFlags::FRAGMENT,
-            64,
-            opacity_bytes,
-        );
-        self.device
-            .cmd_draw_indexed(command_buffer, self.data.indices.len() as u32, 1, 0, 0, 0);
+
+        let bone = &self.skeleton.bones()[model_index];
+        let transform = bone.transform.scale(bone.dimension);
+        self.draw(command_buffer, &transform, &bone.color);
         self.device.end_command_buffer(command_buffer)?;
 
         Ok(command_buffer)

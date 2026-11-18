@@ -1,4 +1,5 @@
 mod data;
+mod draw;
 mod render;
 
 pub use data::AppData;
@@ -20,7 +21,8 @@ use vulkanalia::vk::KhrSurfaceExtensionInstanceCommands;
 // NOTE: This trait was called `KhrSwapchainExtension` in versions of `vulkanalia` prior to `v0.31.0`.
 use vulkanalia::vk::KhrSwapchainExtensionDeviceCommands;
 
-use crate::model::{Skeleton, load_skeleton};
+use crate::model::{BoxMesh, Skeleton, load_model};
+use crate::ui_system::UiSystem;
 use crate::vulkan::attachment::{create_color_objects, create_depth_objects};
 use crate::vulkan::buffer::{create_index_buffer, create_uniform_buffers, create_vertex_buffer};
 use crate::vulkan::command::{
@@ -36,7 +38,6 @@ use crate::vulkan::pipeline::create_pipeline;
 use crate::vulkan::render_pass::create_render_pass;
 use crate::vulkan::swapchain::{create_swapchain, create_swapchain_image_views};
 use crate::vulkan::sync::{create_swapchain_sync_objects, create_sync_objects};
-use crate::ui_system::UiSystem;
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -50,17 +51,15 @@ pub struct App {
     pub data: AppData,
     device: Device,
     frame: usize,
-    pub new_model: bool,
     start: Instant,
     skeleton: Skeleton,
-    models: usize,
     pub ui_system: UiSystem,
 }
 
 impl App {
     /// Creates our Vulkan app.
     pub unsafe fn create(window: &Window) -> Result<Self> {
-        let skeleton = Skeleton::human(String::from("Daniel"));
+        let box_mesh = BoxMesh::new();
         let loader = LibloadingLoader::new(LIBRARY)?;
         let entry = Entry::new(loader).map_err(|b| anyhow!("{}", b))?;
         let mut data = AppData::default();
@@ -78,7 +77,7 @@ impl App {
         create_color_objects(&instance, &device, &mut data)?;
         create_depth_objects(&instance, &device, &mut data)?;
         create_framebuffers(&device, &mut data)?;
-        load_skeleton(&skeleton, &mut data)?;
+        load_model(&mut data, box_mesh.model())?;
         create_vertex_buffer(&instance, &device, &mut data)?;
         create_index_buffer(&instance, &device, &mut data)?;
         create_uniform_buffers(&instance, &device, &mut data)?;
@@ -88,7 +87,9 @@ impl App {
         create_sync_objects(&device, &mut data)?;
         create_swapchain_sync_objects(&device, &mut data)?;
 
-        let ui_system = unsafe {UiSystem::new(&instance, window, &device, &mut data)};
+        let ui_system = unsafe { UiSystem::new(&instance, window, &device, &mut data) };
+
+        let human = Skeleton::human(String::from("Bob"));
 
         Ok(Self {
             entry,
@@ -96,10 +97,8 @@ impl App {
             data,
             device,
             frame: 0,
-            new_model: false,
             start: Instant::now(),
-            skeleton: skeleton,
-            models: 1,
+            skeleton: human,
             ui_system: ui_system?,
         })
     }
@@ -122,7 +121,11 @@ impl App {
         create_swapchain_sync_objects(&self.device, &mut self.data)?;
 
         // Recreate UI swapchain
-        (self.ui_system.pipeline, self.ui_system.pipeline_layout) = UiSystem::setup_pipeline(&self.device, &mut self.data, &self.ui_system.descriptor_set_layout)?;
+        (self.ui_system.pipeline, self.ui_system.pipeline_layout) = UiSystem::setup_pipeline(
+            &self.device,
+            &mut self.data,
+            &self.ui_system.descriptor_set_layout,
+        )?;
         Ok(())
     }
 
@@ -212,6 +215,7 @@ impl App {
 
         // ui destroy swapchain
         self.device.destroy_pipeline(self.ui_system.pipeline, None);
-        self.device.destroy_pipeline_layout(self.ui_system.pipeline_layout, None);
+        self.device
+            .destroy_pipeline_layout(self.ui_system.pipeline_layout, None);
     }
 }
