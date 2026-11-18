@@ -1,7 +1,6 @@
 use std::f32::consts::PI;
 use std::ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Sub};
 
-use vulkanalia::vk::DisplacementMicromapFormatNV;
 
 // ── Type ─────────────────────────────────────────────────────────────────
 
