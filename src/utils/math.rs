@@ -1,6 +1,8 @@
 use std::f32::consts::PI;
 use std::ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Sub};
 
+use vulkanalia::vk::DisplacementMicromapFormatNV;
+
 // ── Type ─────────────────────────────────────────────────────────────────
 
 pub type Vec2 = Vector2;
@@ -302,10 +304,15 @@ impl Matrix4 {
         )
     }
 
+    pub fn from_scale(v: Vector3) -> Matrix4 {
+        Matrix4::new(
+            v.x, 0.0, 0.0, 0.0, 0.0, v.y, 0.0, 0.0, 0.0, 0.0, v.z, 0.0, 0.0, 0.0, 0.0, 1.0,
+        )
+    }
+
     pub fn from_axis_angle<A: Into<Rad>>(axis: Vector3, angle: A) -> Matrix4 {
         let rad: Rad = angle.into();
-        let s = rad.0.sin();
-        let c = rad.0.cos();
+        let (s, c) = rad.0.sin_cos();
         let _1subc = 1.0 - c;
 
         mat4(
@@ -344,6 +351,12 @@ impl Matrix4 {
 
     pub fn look_at_rh(eye: Point3, center: Point3, up: Vector3) -> Matrix4 {
         Matrix4::look_to_rh(eye, center - eye, up)
+    }
+
+    pub fn scale(self, v: Vector3) -> Self {
+        let scale_mat = Matrix4::from_scale(v);
+
+        self * scale_mat
     }
 }
 
