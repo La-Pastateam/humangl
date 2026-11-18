@@ -1,4 +1,5 @@
 mod data;
+mod draw;
 mod render;
 
 pub use data::AppData;
@@ -20,7 +21,7 @@ use vulkanalia::vk::KhrSurfaceExtensionInstanceCommands;
 // NOTE: This trait was called `KhrSwapchainExtension` in versions of `vulkanalia` prior to `v0.31.0`.
 use vulkanalia::vk::KhrSwapchainExtensionDeviceCommands;
 
-use crate::model::{BoxMesh, load_model};
+use crate::model::{BoxMesh, Skeleton, load_model};
 use crate::ui_system::UiSystem;
 use crate::vulkan::attachment::{create_color_objects, create_depth_objects};
 use crate::vulkan::buffer::{create_index_buffer, create_uniform_buffers, create_vertex_buffer};
@@ -50,9 +51,8 @@ pub struct App {
     pub data: AppData,
     device: Device,
     frame: usize,
-    pub new_model: bool,
     start: Instant,
-    models: usize,
+    skeleton: Skeleton,
     pub ui_system: UiSystem,
 }
 
@@ -89,15 +89,16 @@ impl App {
 
         let ui_system = unsafe { UiSystem::new(&instance, window, &device, &mut data) };
 
+        let human = Skeleton::human(String::from("Bob"));
+
         Ok(Self {
             entry,
             instance,
             data,
             device,
             frame: 0,
-            new_model: false,
             start: Instant::now(),
-            models: 1,
+            skeleton: human,
             ui_system: ui_system?,
         })
     }

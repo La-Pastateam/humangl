@@ -5,3 +5,4 @@ pub use load_model::{Vertex, load_model};
 
 mod bone;
 mod skeleton;
+pub use skeleton::Skeleton;
