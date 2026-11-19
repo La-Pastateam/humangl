@@ -1,8 +1,6 @@
 use anyhow::{Context, Result};
 
 use crate::model::bone::Bone;
-use crate::utils::color::RGBA;
-use crate::utils::math::vec3;
 
 #[derive(Debug, Clone)]
 pub struct Skeleton {
@@ -22,70 +20,6 @@ impl Skeleton {
 
     pub const fn from_bones(label: String, bones: Vec<Bone>) -> Self {
         Skeleton { label, bones }
-    }
-
-    pub fn human(label: String) -> Self {
-        let head_color = RGBA::new(50, 150, 50, 255);
-        let torso_color = RGBA::new(50, 50, 50, 255);
-        let arms_color = RGBA::new(100, 100, 100, 255);
-        let legs_color = RGBA::new(150, 150, 150, 255);
-
-        let upperarm_dim = vec3(9.0, 28.0, 9.0);
-        let forearm_dim = vec3(7.5, 25.0, 7.5);
-        let thigh_dim = vec3(14.5, 42.0, 15.5);
-        let lowerleg_dim = vec3(10.5, 42.0, 11.0);
-
-        let mut bones: Vec<Bone> = vec![
-            Bone::new(
-                String::from("Torso"),
-                0,
-                torso_color,
-                vec3(34.0, 52.0, 21.0),
-            ),
-            Bone::new(String::from("Head"), 1, head_color, vec3(16.0, 20.0, 18.5)),
-            Bone::new(
-                String::from("RightUpperArm"),
-                2,
-                arms_color.clone(),
-                upperarm_dim,
-            ),
-            Bone::new(
-                String::from("RightForeArm"),
-                3,
-                arms_color.clone(),
-                forearm_dim,
-            ),
-            Bone::new(
-                String::from("LeftUpperArm"),
-                4,
-                arms_color.clone(),
-                upperarm_dim,
-            ),
-            Bone::new(String::from("LeftForeArm"), 5, arms_color, forearm_dim),
-            Bone::new(String::from("RightThigh"), 6, legs_color.clone(), thigh_dim),
-            Bone::new(
-                String::from("RightLowerLeg"),
-                7,
-                legs_color.clone(),
-                lowerleg_dim,
-            ),
-            Bone::new(String::from("LeftThigh"), 8, legs_color.clone(), thigh_dim),
-            Bone::new(String::from("LeftLowerLeg"), 9, legs_color, lowerleg_dim),
-        ];
-
-        bones[1].add_parent(0);
-        bones[2].add_parent(0);
-        bones[3].add_parent(2);
-        bones[4].add_parent(0);
-        bones[5].add_parent(4);
-        bones[6].add_parent(0);
-        bones[7].add_parent(6);
-        bones[8].add_parent(0);
-        bones[9].add_parent(8);
-
-        Skeleton::from_bones(label, bones)
-        // TODO: Créer les os avec les fonctions associées - HEAD, TORSO, 2ARMS, 2 LEGS.
-        // + Ajouter les positions des bones.
     }
 }
 

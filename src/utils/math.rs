@@ -1,7 +1,6 @@
 use std::f32::consts::PI;
 use std::ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Sub};
 
-
 // ── Type ─────────────────────────────────────────────────────────────────
 
 pub type Vec2 = Vector2;
@@ -79,7 +78,7 @@ pub const fn vec2(x: f32, y: f32) -> Vector2 {
 // ── Vector 3 ─────────────────────────────────────────────────────────────────
 
 #[repr(C)]
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(PartialEq, Default, Copy, Clone, Debug)]
 pub struct Vector3 {
     pub x: f32,
     pub y: f32,
