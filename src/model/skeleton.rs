@@ -11,15 +11,18 @@ pub struct Skeleton {
 // ── Associated Functions ─────────────────────────────────────────────────────────────────
 
 impl Skeleton {
-    pub const fn new(label: String) -> Self {
+    pub fn new(label: impl Into<String>) -> Self {
         Skeleton {
-            label,
+            label: label.into(),
             bones: Vec::new(),
         }
     }
 
-    pub const fn from_bones(label: String, bones: Vec<Bone>) -> Self {
-        Skeleton { label, bones }
+    pub fn from_bones(label: impl Into<String>, bones: Vec<Bone>) -> Self {
+        Skeleton {
+            label: label.into(),
+            bones,
+        }
     }
 }
 
