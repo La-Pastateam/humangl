@@ -242,7 +242,8 @@ impl App {
         );
 
         let bone = &self.skeleton.bones()[model_index];
-        let transform = Mat4::from_scale(bone.dimension);
+        let transform = Mat4::from_translation(bone.anchor) * Mat4::from_scale(bone.dimension);
+
         self.draw(command_buffer, &transform, &bone.color);
         self.device.end_command_buffer(command_buffer)?;
 
