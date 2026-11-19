@@ -10,8 +10,8 @@ impl Skeleton {
         let arms_color = RGBA::new(100, 100, 100, 255);
         let legs_color = RGBA::new(150, 150, 150, 255);
 
-        //TODO : Il faut ajouter les joint `.joint(...)` a tous les Bones builder sauf le torse.
-        //les joints des membres sont temporaires
+        //TODO : Il faut ajouter les pivot `.pivot(...)` a tous les Bones builder sauf le torse.
+        //les anchors des membres sont temporaires
         let mut bones: Vec<Bone> = vec![
             Bone::builder("Torso", 0)
                 .color(torso_color)
@@ -33,37 +33,37 @@ impl Skeleton {
     }
 }
 
-//TODO: Appliquer les joint relatif à leur parent
-fn arm(side: &str, first_id: usize, joint: Vector3, color: RGBA) -> [Bone; 2] {
+//TODO: Appliquer les anchor relatif à leur parent
+fn arm(side: &str, first_id: usize, anchor: Vector3, color: RGBA) -> [Bone; 2] {
     [
         Bone::builder(format!("{side}UpperArm"), first_id)
             .parent(0)
             .color(color)
             .dimension(vec3(9.0, 28.0, 9.0))
-            .joint(joint)
+            .anchor(anchor)
             .build(),
         Bone::builder(format!("{side}ForeArm"), first_id + 1)
             .parent(first_id)
             .color(color)
             .dimension(vec3(7.5, 25.0, 7.5))
-            .joint(joint)
+            .anchor(anchor)
             .build(),
     ]
 }
 
-fn leg(side: &str, first_id: usize, joint: Vector3, color: RGBA) -> [Bone; 2] {
+fn leg(side: &str, first_id: usize, anchor: Vector3, color: RGBA) -> [Bone; 2] {
     [
         Bone::builder(format!("{side}Thigh"), first_id)
             .parent(0)
             .color(color)
             .dimension(vec3(14.5, 42.0, 15.5))
-            .joint(joint)
+            .anchor(anchor)
             .build(),
         Bone::builder(format!("{side}LowerLeg"), first_id + 1)
             .parent(first_id)
             .color(color)
             .dimension(vec3(10.5, 42.0, 11.0))
-            .joint(joint)
+            .anchor(anchor)
             .build(),
     ]
 }

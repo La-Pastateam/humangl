@@ -11,7 +11,8 @@ pub struct BoneBuilder {
     parent_id: Option<usize>,
     color: RGBA,
     dimension: Vector3,
-    joint: Vector3,
+    anchor: Vector3,
+    pivot: Vector3,
 }
 
 // ── Methods ─────────────────────────────────────────────────────────────────
@@ -32,8 +33,13 @@ impl BoneBuilder {
         self
     }
 
-    pub fn joint(mut self, joint: Vector3) -> Self {
-        self.joint = joint;
+    pub fn anchor(mut self, anchor: Vector3) -> Self {
+        self.anchor = anchor;
+        self
+    }
+
+    pub fn pivot(mut self, pivot: Vector3) -> Self {
+        self.pivot = pivot;
         self
     }
 
@@ -44,7 +50,8 @@ impl BoneBuilder {
             parent_id: self.parent_id,
             color: self.color,
             dimension: self.dimension,
-            joint: self.joint,
+            anchor: self.anchor,
+            pivot: self.pivot,
             ..Default::default()
         }
     }
@@ -60,7 +67,8 @@ pub struct Bone {
     pub color: RGBA,
     pub dimension: Vector3,
     pub rotation: Vector3,
-    pub joint: Vector3,
+    pub anchor: Vector3,
+    pub pivot: Vector3,
 }
 
 // ── Associated Functions ─────────────────────────────────────────────────────────────────
