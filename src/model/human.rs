@@ -26,8 +26,8 @@ impl Skeleton {
 
         bones.extend(arm("Left", 2, vec3(0.0, 0.0, 0.0), arms_color));
         bones.extend(arm("Right", 4, vec3(0.0, 0.0, 0.0), arms_color));
-        bones.extend(leg("Left", 6, vec3(0.0, 0.0, 0.0), arms_color));
-        bones.extend(leg("Right", 8, vec3(0.0, 0.0, 0.0), arms_color));
+        bones.extend(leg("Left", 6, vec3(0.0, 0.0, 0.0), legs_color));
+        bones.extend(leg("Right", 8, vec3(0.0, 0.0, 0.0), legs_color));
 
         Skeleton::from_bones(label, bones)
     }
