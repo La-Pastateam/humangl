@@ -72,8 +72,21 @@
 * Rendre les variables codé en dur en tant que mut, utilisé par l'interface.
 * afficher un menu
 * rendre selectionnable les objets afin de les modifier
+* Pouvoir sauvegarder des points du personnage afin de lui attribuer un mouvement.
+  * Il faudrait pouvoir enregistrer une série de mouvements afin de permettre de les rejouer
 
-## **VI.** Finitions
+## **VI.** Les Animations
+
+* Préparer des points précis d'étapes pour les animations (voir avec l'interface ?)
+ 	* Je pense perso (tcros) a un fichier externe qu'on lit pour effectuer l'animation.
+* Ajouter des états généraux `AnimationState` en enum(Idle, Walking, Jumping, SixSevening, FortniteDancing)
+ 	* Préparer une interpolation d'état (transition smooth entre deux états) afin d'empêcher de la "téléortation" des membres
+ 	* Les mouvement de base risque d'être rigide, peut être ajouter une fonction de "easing" pour une acceleration et décélération entre les étapes du mouvement.
+* Déterminer combien de temps prends une transformation afin d'établir une durée d'animation (ou alors boucler l'anim ?)
+  * A faire avec `time_elapsed` probablement
+* Pouvoir modifier la vitesse d'une animation ?
+
+## **VII.** Finitions
 
 * Remettre le code bien dans des dossiers (vulkan par exemple)
 * Adapter le main a winit 0.30 ✅
