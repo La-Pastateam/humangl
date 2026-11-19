@@ -30,6 +30,10 @@ impl Skeleton {
         &self.bones
     }
 
+    pub fn bones_mut(&mut self) -> &mut [Bone] {
+        &mut self.bones
+    }
+
     pub fn add_bone(mut self, bone: Bone) -> Self {
         self.bones.push(bone);
         self

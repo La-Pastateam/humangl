@@ -52,7 +52,7 @@ pub struct App {
     device: Device,
     frame: usize,
     start: Instant,
-    skeleton: Skeleton,
+    pub skeleton: Skeleton,
     pub ui_system: UiSystem,
 }
 

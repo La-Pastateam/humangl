@@ -14,6 +14,7 @@ use super::App;
 use crate::utils::math::{self, Deg, Mat4, Point3, Vector3, point3, vec3};
 use crate::vulkan::buffer::UniformBufferObject;
 use crate::vulkan::sync::MAX_FRAMES_IN_FLIGHT;
+use crate::ui_system::UiSystem;
 
 // ── Constants ────────────────────────────────────────────────────────────────────
 
@@ -59,7 +60,7 @@ impl App {
         self.data.images_in_flight[image_index] = self.data.in_flight_fences[self.frame];
 
         // Render UI
-        self.ui_system.draw_window(&mut self.data);
+        let _ = UiSystem::draw_window(self);
 
         self.update_command_buffer(image_index)?;
         self.update_uniform_buffer(image_index)?;

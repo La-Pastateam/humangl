@@ -9,11 +9,11 @@ use vulkanalia::prelude::v1_0::*;
 use std::ptr::copy_nonoverlapping as memcpy;
 
 use crate::vulkan::buffer::{create_buffer};
-use crate::app::AppData;
+use crate::app::{App, AppData};
 use crate::vulkan::image::{create_image, create_image_view, transition_image_layout, copy_buffer_to_image};
 use crate::vulkan::pipeline::{create_shader_module};
 use crate::vulkan::device::QueueFamilyIndices;
-
+use crate::utils::color::{RGBA};
 
 const DEFAULT_VTX_COUNT: usize = 5000;
 const DEFAULT_IDX_COUNT: usize = 10000;
@@ -780,17 +780,23 @@ impl UiSystem {
         Ok(command_buffer)
     }
 
-    pub unsafe fn draw_window(&mut self, data: &mut AppData) {
+    pub unsafe fn draw_window(app: &mut App) -> Result<()> {
 
         // Render UI
-        let ui = self.imgui.frame();
-        if self.ui_visible {
+        let ui = app.ui_system.imgui.frame();
+        if app.ui_system.ui_visible {
 
             let display_size = ui.io().display_size;
-            let mut current_interface_x = self.interface_x;
+            let mut current_interface_x = app.ui_system.interface_x;
 
-            if let Some(vertex) = data.vertices.last_mut() {
-                let mut colors = vertex.color;
+            if let Some(bone) = app.skeleton.bones_mut().last_mut() {
+                let colors = bone.get_color();
+                let mut rgb: [f32;4] = [
+                    colors.r as f32 / 255.0,
+                    colors.g as f32 / 255.0,
+                    colors.b as f32 / 255.0,
+                    colors.a as f32 / 255.0
+                ];
 
                 // Prepare window
                 ui.window("Editor")
@@ -802,14 +808,20 @@ impl UiSystem {
                     )
                     .build(|| {
                         current_interface_x = ui.window_size()[0];
-                        ui.slider("Red", 0.0, 255.0, &mut colors[0]);
-                        ui.slider("Green", 0.0, 255.0, &mut colors[1]);
-                        ui.slider("Blue", 0.0, 255.0, &mut colors[2]);
+                        ui.text("Change color !");
+                        if ui.color_picker4("##picker", &mut rgb) {
+                            bone.change_color(RGBA{
+                                r: (rgb[0] * 255.0).round() as u8,
+                                g: (rgb[1] * 255.0).round() as u8,
+                                b: (rgb[2] * 255.0).round() as u8,
+                                a: (rgb[3] * 255.0).round() as u8
+                            });
+                        }
                     });
-                self.interface_x = current_interface_x;
-                vertex.color = colors;
+                app.ui_system.interface_x = current_interface_x;
             }
         }
+        Ok(())
     }
 
     pub unsafe fn destroy(&mut self, device: &Device) {

@@ -86,4 +86,7 @@ impl Bone {
     pub fn id(&self) -> usize {
         self.id
     }
+     pub fn get_color(&self) -> RGBA {
+        self.color
+    }
 }
