@@ -54,7 +54,7 @@ impl BoneBuilder {
 
 #[derive(PartialEq, Default, Debug, Clone)]
 pub struct Bone {
-    label: String,
+    pub label: String,
     id: usize,
     pub parent_id: Option<usize>,
     pub color: RGBA,
@@ -86,7 +86,13 @@ impl Bone {
     pub fn id(&self) -> usize {
         self.id
     }
-     pub fn get_color(&self) -> RGBA {
+
+    pub fn get_color(&self) -> RGBA {
         self.color
     }
+
+    pub fn get_label(&self) -> &String {
+        &self.label
+    }
+
 }
