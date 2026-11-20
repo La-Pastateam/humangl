@@ -9,15 +9,16 @@ impl MatrixStack {
         Self { stack: vec![Mat4::identity()] }
     }
 
-    pub fn get_top(&mut self) -> &mat4 {
+    pub fn get_top(&mut self) -> &Mat4 {
         self.stack.last().expect("Stack is empty")
     }
 
-    pub fn push(&mut self, matrix: mat4) {
-        self.stack.push(*self.get_top() * matrix);
+    pub fn push(&mut self, matrix: Mat4) {
+        let top = *self.get_top();
+        self.stack.push(top * matrix);
     }
 
-    pub fn pop(&mut self) -> mat4 {
+    pub fn pop(&mut self) -> Mat4 {
         if self.stack.len() > 1 {
             self.stack.pop().unwrap()
         } else {
