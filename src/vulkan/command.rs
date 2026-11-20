@@ -13,8 +13,16 @@ pub unsafe fn create_command_pools(
 ) -> Result<()> {
     data.command_pool = create_command_pool(instance, device, data)?;
 
-    let num_images = data.swapchain_images.len();
-    for _ in 0..num_images {
+    Ok(())
+}
+
+pub unsafe fn create_image_command_pools(
+    instance: &Instance,
+    device: &Device,
+    data: &mut AppData,
+) -> Result<()> {
+    data.command_pools.clear();
+    for _ in 0..data.swapchain_images.len() {
         let command_pool = create_command_pool(instance, device, data)?;
         data.command_pools.push(command_pool);
     }

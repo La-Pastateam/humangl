@@ -1,9 +1,9 @@
 mod data;
+mod draw;
 mod render;
 
 pub use data::AppData;
 
-use std::path::PathBuf;
 use std::time::Instant;
 
 use anyhow::{Result, anyhow};
@@ -21,10 +21,13 @@ use vulkanalia::vk::KhrSurfaceExtensionInstanceCommands;
 // NOTE: This trait was called `KhrSwapchainExtension` in versions of `vulkanalia` prior to `v0.31.0`.
 use vulkanalia::vk::KhrSwapchainExtensionDeviceCommands;
 
-use crate::model::load_model;
+use crate::model::{BoxMesh, Skeleton, load_model};
+use crate::ui_system::UiSystem;
 use crate::vulkan::attachment::{create_color_objects, create_depth_objects};
 use crate::vulkan::buffer::{create_index_buffer, create_uniform_buffers, create_vertex_buffer};
-use crate::vulkan::command::{create_command_buffers, create_command_pools};
+use crate::vulkan::command::{
+    create_command_buffers, create_command_pools, create_image_command_pools,
+};
 use crate::vulkan::descriptor::{
     create_descriptor_pool, create_descriptor_set_layout, create_descriptor_sets,
 };
@@ -34,37 +37,34 @@ use crate::vulkan::instance::{VALIDATION_ENABLED, create_instance};
 use crate::vulkan::pipeline::create_pipeline;
 use crate::vulkan::render_pass::create_render_pass;
 use crate::vulkan::swapchain::{create_swapchain, create_swapchain_image_views};
-use crate::vulkan::sync::create_sync_objects;
+use crate::vulkan::sync::{create_swapchain_sync_objects, create_sync_objects};
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-
-const DEFAULT_MODEL: &str = "resources/model/42.obj";
 
 // ── App ───────────────────────────────────────────────────────────────────────
 
 /// Our Vulkan app.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct App {
     entry: Entry,
     instance: Instance,
     pub data: AppData,
     device: Device,
     frame: usize,
-    pub resized: bool,
-    pub new_model: bool,
     start: Instant,
-    models: usize,
+    skeleton: Skeleton,
+    pub ui_system: UiSystem,
 }
 
 impl App {
     /// Creates our Vulkan app.
     pub unsafe fn create(window: &Window) -> Result<Self> {
+        let box_mesh = BoxMesh::new();
         let loader = LibloadingLoader::new(LIBRARY)?;
         let entry = Entry::new(loader).map_err(|b| anyhow!("{}", b))?;
         let mut data = AppData::default();
         let instance = create_instance(window, &entry, &mut data)?;
         data.surface = vk_window::create_surface(&instance, &window, &window)?;
-        data.image_path = PathBuf::from(DEFAULT_MODEL);
         pick_physical_device(&instance, &mut data)?;
         let device = create_logical_device(&entry, &instance, &mut data)?;
         create_swapchain(window, &instance, &device, &mut data)?;
@@ -73,10 +73,11 @@ impl App {
         create_descriptor_set_layout(&device, &mut data)?;
         create_pipeline(&device, &mut data)?;
         create_command_pools(&instance, &device, &mut data)?;
+        create_image_command_pools(&instance, &device, &mut data)?;
         create_color_objects(&instance, &device, &mut data)?;
         create_depth_objects(&instance, &device, &mut data)?;
         create_framebuffers(&device, &mut data)?;
-        load_model(&mut data)?;
+        load_model(&mut data, box_mesh.model())?;
         create_vertex_buffer(&instance, &device, &mut data)?;
         create_index_buffer(&instance, &device, &mut data)?;
         create_uniform_buffers(&instance, &device, &mut data)?;
@@ -84,6 +85,11 @@ impl App {
         create_descriptor_sets(&device, &mut data)?;
         create_command_buffers(&device, &mut data)?;
         create_sync_objects(&device, &mut data)?;
+        create_swapchain_sync_objects(&device, &mut data)?;
+
+        let ui_system = unsafe { UiSystem::new(&instance, window, &device, &mut data) };
+
+        let human = Skeleton::human(String::from("Bob"));
 
         Ok(Self {
             entry,
@@ -91,14 +97,13 @@ impl App {
             data,
             device,
             frame: 0,
-            resized: false,
-            new_model: false,
             start: Instant::now(),
-            models: 1,
+            skeleton: human,
+            ui_system: ui_system?,
         })
     }
 
-    unsafe fn recreate_swapchain(&mut self, window: &Window) -> Result<()> {
+    pub unsafe fn recreate_swapchain(&mut self, window: &Window) -> Result<()> {
         self.device.device_wait_idle()?;
         self.destroy_swapchain();
         create_swapchain(window, &self.instance, &self.device, &mut self.data)?;
@@ -111,28 +116,33 @@ impl App {
         create_uniform_buffers(&self.instance, &self.device, &mut self.data)?;
         create_descriptor_pool(&self.device, &mut self.data)?;
         create_descriptor_sets(&self.device, &mut self.data)?;
+        create_image_command_pools(&self.instance, &self.device, &mut self.data)?;
         create_command_buffers(&self.device, &mut self.data)?;
+        create_swapchain_sync_objects(&self.device, &mut self.data)?;
+
+        // Recreate UI swapchain
+        (self.ui_system.pipeline, self.ui_system.pipeline_layout) = UiSystem::setup_pipeline(
+            &self.device,
+            &mut self.data,
+            &self.ui_system.descriptor_set_layout,
+        )?;
         Ok(())
     }
 
     /// Destroys our Vulkan app.
     pub unsafe fn destroy(&mut self) {
-        // ─── BUG : Must wait semaphore to be disregarded ───────────────
         self.device.device_wait_idle().unwrap();
         // ───
+        self.ui_system.destroy(&self.device);
+
         self.device.destroy_buffer(self.data.index_buffer, None);
         self.device.free_memory(self.data.index_buffer_memory, None);
         self.destroy_swapchain();
-        self.data
-            .command_pools
-            .iter()
-            .for_each(|p| self.device.destroy_command_pool(*p, None));
         self.device
             .destroy_descriptor_set_layout(self.data.descriptor_set_layout, None);
         self.device.destroy_buffer(self.data.vertex_buffer, None);
         self.device
             .free_memory(self.data.vertex_buffer_memory, None);
-
         self.data
             .in_flight_fences
             .iter()
@@ -167,16 +177,6 @@ impl App {
             .destroy_image_view(self.data.depth_image_view, None);
         self.device.free_memory(self.data.depth_image_memory, None);
         self.device.destroy_image(self.data.depth_image, None);
-        self.device
-            .destroy_descriptor_pool(self.data.descriptor_pool, None);
-        self.data
-            .uniform_buffers
-            .iter()
-            .for_each(|b| self.device.destroy_buffer(*b, None));
-        self.data
-            .uniform_buffers_memory
-            .iter()
-            .for_each(|m| self.device.free_memory(*m, None));
         self.data
             .framebuffers
             .iter()
@@ -190,5 +190,32 @@ impl App {
             .iter()
             .for_each(|v| self.device.destroy_image_view(*v, None));
         self.device.destroy_swapchain_khr(self.data.swapchain, None);
+        self.device
+            .destroy_descriptor_pool(self.data.descriptor_pool, None);
+        self.data
+            .uniform_buffers
+            .iter()
+            .for_each(|b| self.device.destroy_buffer(*b, None));
+        self.data
+            .uniform_buffers_memory
+            .iter()
+            .for_each(|m| self.device.free_memory(*m, None));
+        self.data
+            .command_pools
+            .iter()
+            .for_each(|p| self.device.destroy_command_pool(*p, None));
+        self.data.command_pools.clear();
+        self.data.command_buffers.clear();
+        self.data.secondary_command_buffers.clear();
+        self.data
+            .render_finished_semaphores
+            .iter()
+            .for_each(|s| self.device.destroy_semaphore(*s, None));
+        self.data.render_finished_semaphores.clear();
+
+        // ui destroy swapchain
+        self.device.destroy_pipeline(self.ui_system.pipeline, None);
+        self.device
+            .destroy_pipeline_layout(self.ui_system.pipeline_layout, None);
     }
 }

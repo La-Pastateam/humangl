@@ -1,5 +1,4 @@
 use std::mem::size_of;
-use std::ptr::slice_from_raw_parts;
 
 // NOTE: From the STD Lib to copy memory of the vertex list to the mapped memory
 use std::ptr::copy_nonoverlapping as memcpy;
@@ -12,9 +11,15 @@ use winit::window::Window;
 use vulkanalia::vk::KhrSwapchainExtensionDeviceCommands;
 
 use super::App;
-use crate::math::{self, Deg, Mat4, point3, vec3};
+use crate::utils::math::{self, Deg, Mat4, Point3, Vector3, point3, vec3};
 use crate::vulkan::buffer::UniformBufferObject;
 use crate::vulkan::sync::MAX_FRAMES_IN_FLIGHT;
+
+// ── Constants ────────────────────────────────────────────────────────────────────
+
+const EYE: Point3 = point3(0.0, 80.0, 250.0);
+const CENTER: Point3 = point3(0.0, 80.0, 0.0);
+const UP: Vector3 = vec3(0.0, 1.0, 0.0);
 
 // ── Render ────────────────────────────────────────────────────────────────────
 
@@ -30,15 +35,18 @@ impl App {
         self.device
             .wait_for_fences(&[self.data.in_flight_fences[self.frame]], true, u64::MAX)?;
 
-        let image_index = self
-            .device
-            .acquire_next_image_khr(
-                self.data.swapchain,
-                u64::MAX,
-                self.data.image_available_semaphores[self.frame],
-                vk::Fence::null(),
-            )?
-            .0 as usize;
+        let result = self.device.acquire_next_image_khr(
+            self.data.swapchain,
+            u64::MAX,
+            self.data.image_available_semaphores[self.frame],
+            vk::Fence::null(),
+        );
+
+        let image_index = match result {
+            Ok((image_index, _)) => image_index as usize,
+            Err(vk::ErrorCode::OUT_OF_DATE_KHR) => return self.recreate_swapchain(window),
+            Err(e) => return Err(anyhow!(e)),
+        };
 
         if !self.data.images_in_flight[image_index].is_null() {
             self.device.wait_for_fences(
@@ -49,6 +57,9 @@ impl App {
         }
 
         self.data.images_in_flight[image_index] = self.data.in_flight_fences[self.frame];
+
+        // Render UI
+        self.ui_system.draw_window(&mut self.data);
 
         self.update_command_buffer(image_index)?;
         self.update_uniform_buffer(image_index)?;
@@ -85,8 +96,7 @@ impl App {
         let changed = result == Ok(vk::SuccessCode::SUBOPTIMAL_KHR)
             || result == Err(vk::ErrorCode::OUT_OF_DATE_KHR);
 
-        if self.resized || changed {
-            self.resized = false;
+        if changed {
             self.recreate_swapchain(window)?;
         } else if let Err(e) = result {
             return Err(anyhow!(e));
@@ -158,11 +168,21 @@ impl App {
             vk::SubpassContents::SECONDARY_COMMAND_BUFFERS,
         );
 
-        let secondary_command_buffer = (0..self.models)
-            .map(|i| self.update_secondary_command_buffer(image_index, 0))
+        let secondary_command_buffer = (0..self.skeleton.bones().len())
+            .map(|i| self.update_secondary_command_buffer(image_index, i))
             .collect::<Result<Vec<_>, _>>()?;
         self.device
             .cmd_execute_commands(command_buffer, &secondary_command_buffer[..]);
+
+        let ui_secondary_command_buffer = self.ui_system.update_ui_scnd_cmd_buffer(
+            &self.instance,
+            &self.device,
+            &mut self.data,
+            image_index,
+        )?;
+
+        self.device
+            .cmd_execute_commands(command_buffer, &[ui_secondary_command_buffer]);
 
         self.device.cmd_end_render_pass(command_buffer);
         self.device.end_command_buffer(command_buffer)?;
@@ -175,9 +195,6 @@ impl App {
         image_index: usize,
         model_index: usize,
     ) -> Result<vk::CommandBuffer> {
-        self.data
-            .secondary_command_buffers
-            .resize_with(image_index + 1, Vec::new);
         let command_buffers = &mut self.data.secondary_command_buffers[image_index];
         while model_index >= command_buffers.len() {
             let allocate_info = vk::CommandBufferAllocateInfo::builder()
@@ -191,21 +208,10 @@ impl App {
 
         let command_buffer = command_buffers[model_index];
 
-        let time = self.start.elapsed().as_secs_f32();
-
-        let model = Mat4::from_translation(vec3(0.0, 0.0, 0.0))
-            * Mat4::from_axis_angle(vec3(0.0, 0.0, 1.0), Deg(90.0) * time);
-
-        let model_bytes =
-            &*slice_from_raw_parts(&model as *const Mat4 as *const u8, size_of::<Mat4>());
-
         let inheritance_info = vk::CommandBufferInheritanceInfo::builder()
             .render_pass(self.data.render_pass)
             .subpass(0)
             .framebuffer(self.data.framebuffers[image_index]);
-
-        let opacity = (model_index + 1) as f32;
-        let opacity_bytes = &opacity.to_ne_bytes()[..];
 
         let info = vk::CommandBufferBeginInfo::builder()
             .flags(vk::CommandBufferUsageFlags::RENDER_PASS_CONTINUE)
@@ -234,22 +240,10 @@ impl App {
             &[self.data.descriptor_sets[image_index]],
             &[],
         );
-        self.device.cmd_push_constants(
-            command_buffer,
-            self.data.pipeline_layout,
-            vk::ShaderStageFlags::VERTEX,
-            0,
-            model_bytes,
-        );
-        self.device.cmd_push_constants(
-            command_buffer,
-            self.data.pipeline_layout,
-            vk::ShaderStageFlags::FRAGMENT,
-            64,
-            opacity_bytes,
-        );
-        self.device
-            .cmd_draw_indexed(command_buffer, self.data.indices.len() as u32, 1, 0, 0, 0);
+
+        let bone = &self.skeleton.bones()[model_index];
+        let transform = Mat4::from_scale(bone.dimension);
+        self.draw(command_buffer, &transform, &bone.color);
         self.device.end_command_buffer(command_buffer)?;
 
         Ok(command_buffer)
@@ -258,11 +252,7 @@ impl App {
     unsafe fn update_uniform_buffer(&self, image_index: usize) -> Result<()> {
         let time = self.start.elapsed().as_secs_f32();
 
-        let view = Mat4::look_at_rh(
-            point3(3.0, 2.0, 1.5),
-            point3(0.0, 0.0, 0.0),
-            vec3(0.0, 0.0, 1.0),
-        );
+        let view = Mat4::look_at_rh(EYE, CENTER, UP);
 
         let correction = Mat4::new(
             1.0,
@@ -287,8 +277,8 @@ impl App {
             * math::perspective(
                 Deg(45.0),
                 self.data.swapchain_extent.width as f32 / self.data.swapchain_extent.height as f32,
-                0.1,
-                10.0,
+                5.0,
+                1000.0,
             );
 
         let ubo = UniformBufferObject { view, proj };

@@ -7,8 +7,8 @@ use anyhow::Result;
 use vulkanalia::prelude::v1_0::*;
 
 use crate::app::AppData;
-use crate::math::Mat4;
 use crate::model::Vertex;
+use crate::utils::math::Mat4;
 use crate::vulkan::command::{begin_single_time_commands, end_single_time_commands};
 use crate::vulkan::memory::get_memory_type_index;
 

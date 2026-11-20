@@ -30,6 +30,8 @@ RUN apt-get update && apt-get install -y \
     libwayland-dev \
     && rm -rf /var/lib/apt/lists/*
 
+RUN rustup component add clippy
+
 # Set the working directory inside the container to /app
 WORKDIR /app
 

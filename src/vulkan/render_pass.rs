@@ -70,7 +70,7 @@ pub unsafe fn create_render_pass(
         )
         .dst_access_mask(
             vk::AccessFlags::COLOR_ATTACHMENT_WRITE
-                | vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_READ,
+                | vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE,
         );
 
     let subpass = vk::SubpassDescription::builder()
