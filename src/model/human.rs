@@ -11,7 +11,7 @@ impl Skeleton {
         let legs_color = RGBA::new(150, 150, 150, 255);
 
         //TODO : Il faut ajouter les pivot `.pivot(...)` a tous les Bones builder sauf le torse.
-        //les pivots des membres sont temporaires
+        //les anchors des membres sont temporaires
         let mut bones: Vec<Bone> = vec![
             Bone::builder("Torso", 0)
                 .color(torso_color)
@@ -26,44 +26,44 @@ impl Skeleton {
 
         bones.extend(arm("Left", 2, vec3(0.0, 0.0, 0.0), arms_color));
         bones.extend(arm("Right", 4, vec3(0.0, 0.0, 0.0), arms_color));
-        bones.extend(leg("Left", 6, vec3(0.0, 0.0, 0.0), arms_color));
-        bones.extend(leg("Right", 8, vec3(0.0, 0.0, 0.0), arms_color));
+        bones.extend(leg("Left", 6, vec3(0.0, 0.0, 0.0), legs_color));
+        bones.extend(leg("Right", 8, vec3(0.0, 0.0, 0.0), legs_color));
 
         Skeleton::from_bones(label, bones)
     }
 }
 
-//TODO: Appliquer les pivot relatif à leur parent
-fn arm(side: &str, first_id: usize, pivot: Vector3, color: RGBA) -> [Bone; 2] {
+//TODO: Appliquer les anchor relatif à leur parent
+fn arm(side: &str, first_id: usize, anchor: Vector3, color: RGBA) -> [Bone; 2] {
     [
         Bone::builder(format!("{side}UpperArm"), first_id)
             .parent(0)
             .color(color)
             .dimension(vec3(9.0, 28.0, 9.0))
-            .pivot(pivot)
+            .anchor(anchor)
             .build(),
         Bone::builder(format!("{side}ForeArm"), first_id + 1)
             .parent(first_id)
             .color(color)
             .dimension(vec3(7.5, 25.0, 7.5))
-            .pivot(pivot)
+            .anchor(anchor)
             .build(),
     ]
 }
 
-fn leg(side: &str, first_id: usize, pivot: Vector3, color: RGBA) -> [Bone; 2] {
+fn leg(side: &str, first_id: usize, anchor: Vector3, color: RGBA) -> [Bone; 2] {
     [
         Bone::builder(format!("{side}Thigh"), first_id)
             .parent(0)
             .color(color)
             .dimension(vec3(14.5, 42.0, 15.5))
-            .pivot(pivot)
+            .anchor(anchor)
             .build(),
         Bone::builder(format!("{side}LowerLeg"), first_id + 1)
             .parent(first_id)
             .color(color)
             .dimension(vec3(10.5, 42.0, 11.0))
-            .pivot(pivot)
+            .anchor(anchor)
             .build(),
     ]
 }
