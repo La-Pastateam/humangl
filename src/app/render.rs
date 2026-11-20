@@ -247,8 +247,8 @@ impl App {
 
         let bone = &self.skeleton.bones()[model_index];
         let transform = world[model_index]
-            * Mat4::from_translation(bone.pivot)
-            * Mat4::from_scale(bone.dimension);
+            * Mat4::from_scale(bone.dimension)
+            * Mat4::from_translation(-bone.pivot);
 
         self.draw(command_buffer, &transform, &bone.color);
         self.device.end_command_buffer(command_buffer)?;
