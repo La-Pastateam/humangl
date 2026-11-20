@@ -168,8 +168,9 @@ impl App {
             vk::SubpassContents::SECONDARY_COMMAND_BUFFERS,
         );
 
+        let world = self.skeleton.world_matrices();
         let secondary_command_buffer = (0..self.skeleton.bones().len())
-            .map(|i| self.update_secondary_command_buffer(image_index, i))
+            .map(|i| self.update_secondary_command_buffer(image_index, i, &world))
             .collect::<Result<Vec<_>, _>>()?;
         self.device
             .cmd_execute_commands(command_buffer, &secondary_command_buffer[..]);
@@ -194,6 +195,7 @@ impl App {
         &mut self,
         image_index: usize,
         model_index: usize,
+        world: &[Mat4],
     ) -> Result<vk::CommandBuffer> {
         let command_buffers = &mut self.data.secondary_command_buffers[image_index];
         while model_index >= command_buffers.len() {
@@ -242,7 +244,10 @@ impl App {
         );
 
         let bone = &self.skeleton.bones()[model_index];
-        let transform = Mat4::from_scale(bone.dimension);
+        let transform = world[model_index]
+            * Mat4::from_scale(bone.dimension)
+            * Mat4::from_translation(-bone.pivot);
+
         self.draw(command_buffer, &transform, &bone.color);
         self.device.end_command_buffer(command_buffer)?;
 

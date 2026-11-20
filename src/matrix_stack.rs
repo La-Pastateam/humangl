@@ -6,15 +6,17 @@ pub struct MatrixStack {
 
 impl MatrixStack {
     pub fn new() -> Self {
-        Self { stack: vec![Mat4::identity()] }
+        Self {
+            stack: vec![Mat4::identity()],
+        }
     }
 
-    pub fn get_top(&mut self) -> &Mat4 {
+    pub fn top(&self) -> &Mat4 {
         self.stack.last().expect("Stack is empty")
     }
 
     pub fn push(&mut self, matrix: Mat4) {
-        let top = *self.get_top();
+        let top = *self.top();
         self.stack.push(top * matrix);
     }
 
@@ -22,7 +24,11 @@ impl MatrixStack {
         if self.stack.len() > 1 {
             self.stack.pop().unwrap()
         } else {
-            *self.get_top()
+            *self.top()
         }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.stack.len() == 1 && self.stack[0].is_identity()
     }
 }

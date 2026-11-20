@@ -1,5 +1,5 @@
 use std::f32::consts::PI;
-use std::ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Sub};
+use std::ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Neg, Sub};
 
 // ── Type ─────────────────────────────────────────────────────────────────
 
@@ -189,6 +189,13 @@ impl Mul<f32> for Vector3 {
     }
 }
 
+impl Neg for Vector3 {
+    type Output = Vector3;
+    fn neg(self) -> Self::Output {
+        vec3(-self.x, -self.y, -self.z)
+    }
+}
+
 pub const fn vec3(x: f32, y: f32, z: f32) -> Vector3 {
     Vector3 { x, y, z }
 }
@@ -355,6 +362,10 @@ impl Matrix4 {
         let scale_mat = Matrix4::from_scale(v);
 
         self * scale_mat
+    }
+
+    pub fn is_identity(&self) -> bool {
+        *self == Matrix4::identity()
     }
 }
 
