@@ -1,6 +1,6 @@
 use crate::model::Skeleton;
 use crate::model::bone::Bone;
-use crate::utils::color::RGBA;
+use crate::utils::color::{self, RGBA};
 use crate::utils::math::{Vector3, vec3};
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -16,6 +16,30 @@ const THIGH_DIM: Vector3 = vec3(14.5, 42.0, 15.5);
 const LOWERLEG_DIM: Vector3 = vec3(10.5, 42.0, 11.0);
 const LEG_LENGTH: f32 = THIGH_DIM.y + LOWERLEG_DIM.y;
 
+// ── Side ─────────────────────────────────────────────────────────────────
+
+#[derive(Clone, Copy)]
+enum Side {
+    Left,
+    Right,
+}
+
+impl Side {
+    const fn sign(self) -> f32 {
+        match self {
+            Side::Left => -1.0,
+            Side::Right => 1.0,
+        }
+    }
+
+    const fn name(self) -> &'static str {
+        match self {
+            Side::Left => "Left",
+            Side::Right => "Right",
+        }
+    }
+}
+
 // ── Human ─────────────────────────────────────────────────────────────────
 
 impl Skeleton {
@@ -25,72 +49,70 @@ impl Skeleton {
         let arms_color = RGBA::new(100, 100, 255, 255);
         let legs_color = RGBA::new(250, 150, 000, 255);
 
-        //TODO : Il faut ajouter les pivot `.pivot(...)` a tous les Bones builder sauf le torse.
-        //les anchors des membres sont temporaires
         let mut bones: Vec<Bone> = vec![
             Bone::builder("Torso", 0)
                 .color(torso_color)
                 .dimension(TORSO_DIM)
                 .anchor(vec3(0.0, LEG_LENGTH, 0.0))
+                .pivot(vec3(0.0, -0.5, 0.0))
                 .build(),
             Bone::builder("Head", 1)
                 .color(head_color)
                 .parent(0)
                 .dimension(HEAD_DIM)
-                .anchor(vec3(0.0, TORSO_DIM.y, 0.0))
+                .anchor(vec3(0.0, 0.5, 0.0))
+                .pivot(vec3(0.0, -0.5, 0.0))
                 .build(),
         ];
 
-        bones.extend(arm(
-            "Left",
-            2,
-            vec3(-TORSO_DIM.x, TORSO_DIM.y, 0.0),
-            arms_color,
-        ));
-        bones.extend(arm(
-            "Right",
-            4,
-            vec3(TORSO_DIM.x, TORSO_DIM.y, 0.0),
-            arms_color,
-        ));
-        bones.extend(leg("Left", 6, vec3(-TORSO_DIM.x, 0.0, 0.0), legs_color));
-        bones.extend(leg("Right", 8, vec3(TORSO_DIM.x, 0.0, 0.0), legs_color));
+        bones.extend(arm(Side::Left, 2, arms_color));
+        bones.extend(arm(Side::Right, 4, arms_color));
+        bones.extend(leg(Side::Left, 6, legs_color));
+        bones.extend(leg(Side::Right, 8, legs_color));
 
         Skeleton::from_bones(label, bones)
     }
 }
 
 //TODO: Appliquer les anchor relatif à leur parent
-fn arm(side: &str, first_id: usize, anchor: Vector3, color: RGBA) -> [Bone; 2] {
+fn arm(side: Side, first_id: usize, color: RGBA) -> [Bone; 2] {
+    let s = side.sign();
+    let name = side.name();
+
     [
-        Bone::builder(format!("{side}UpperArm"), first_id)
+        Bone::builder(format!("{name}UpperArm"), first_id)
             .parent(0)
             .color(color)
             .dimension(UPPERARM_DIM)
-            .anchor(anchor)
+            .anchor(vec3(s * 0.5, 0.5, 0.0))
+            .pivot(vec3(-s * 0.5, 0.5, 0.0))
             .build(),
-        Bone::builder(format!("{side}ForeArm"), first_id + 1)
+        Bone::builder(format!("{name}ForeArm"), first_id + 1)
             .parent(first_id)
             .color(color)
             .dimension(FOREARM_DIM)
-            .anchor(anchor)
+            .anchor(vec3(0.0, -0.5, 0.0))
+            .pivot(vec3(0.0, 0.5, 0.0))
             .build(),
     ]
 }
-
-fn leg(side: &str, first_id: usize, anchor: Vector3, color: RGBA) -> [Bone; 2] {
+fn leg(side: Side, first_id: usize, color: RGBA) -> [Bone; 2] {
+    let s = side.sign();
+    let name = side.name();
     [
-        Bone::builder(format!("{side}Thigh"), first_id)
+        Bone::builder(format!("{name}Thigh"), first_id)
             .parent(0)
             .color(color)
             .dimension(THIGH_DIM)
-            .anchor(anchor)
+            .anchor(vec3(s * 0.25, -0.5, 0.0))
+            .pivot(vec3(0.0, 0.5, 0.0))
             .build(),
-        Bone::builder(format!("{side}LowerLeg"), first_id + 1)
+        Bone::builder(format!("{name}LowerLeg"), first_id + 1)
             .parent(first_id)
             .color(color)
             .dimension(LOWERLEG_DIM)
-            .anchor(anchor)
+            .anchor(vec3(0.0, -0.5, 0.0))
+            .pivot(vec3(0.0, 0.5, 0.0))
             .build(),
     ]
 }
