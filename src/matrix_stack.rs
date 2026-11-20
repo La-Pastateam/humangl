@@ -29,6 +29,6 @@ impl MatrixStack {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.stack.is_empty()
+        self.stack.len() == 1 && self.stack[0].is_identity()
     }
 }
