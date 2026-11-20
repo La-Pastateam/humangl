@@ -48,7 +48,7 @@ pub struct UiSystem {
     pub ui_visible: bool,
     interface_x: f32,
     selected_bone: usize,
-    open_color_window: Vec<usize>,
+    open_color_windows: Vec<usize>,
 }
 
 
@@ -569,7 +569,7 @@ impl UiSystem {
             ui_visible: true,
             interface_x: 300.0,
             selected_bone: 0,
-            open_color_window:Vec::new(),
+            open_color_windows:Vec::new(),
         })
     }
 
@@ -795,22 +795,6 @@ impl UiSystem {
             // Get the actual x value of the left ui
             let mut current_interface_x = app.ui_system.interface_x;
 
-            // Get the rgb color of the actual bone
-            let mut rgb: [f32;4] = if let Some(bone) = app.skeleton.bones().get(app.ui_system.selected_bone) {
-                let colors = bone.get_color();
-                [
-                    colors.r as f32 / 255.0,
-                    colors.g as f32 / 255.0,
-                    colors.b as f32 / 255.0,
-                    colors.a as f32 / 255.0
-                ]
-            } else {
-                [1.0, 1.0, 1.0, 1.0]
-            };
-
-            // Var to see if color has changed
-            let mut color_changed = false;
-
             // Prepare left ui window
             ui.window("Editor")
                 .size([current_interface_x, display_size[1] + 50.0], imgui::Condition::Always)
@@ -834,33 +818,72 @@ impl UiSystem {
 
                         // Init bone selector
                         if ui.combo("##bone_selector", &mut app.ui_system.selected_bone, bones, |bone| {
-                            std::borrow::Cow::Borrowed(bone.get_label())
+                            std::borrow::Cow::Borrowed(bone.label())
                         }) {
                             // Code executed when we select a new one
                         };
 
                         // Button to open a new color selector for the current bone
-                        //if ui.button("Open Color Window") {
-                        //    let idx = app.size
-                    }
-
-                    // Color selector for the bone
-                    ui.text("Change color !");
-                    if ui.color_picker4("##picker", &mut rgb) {
-                        color_changed = true;
+                        if ui.button("Open Color Window") {
+                            let idx = app.ui_system.selected_bone;
+                            if !app.ui_system.open_color_windows.contains(&idx) {
+                                app.ui_system.open_color_windows.push(idx);
+                            }
+                        }
                     }
                 });
                 // Save new x size for the left ui
                 app.ui_system.interface_x = current_interface_x;
+
+                let mut pending_color_update : Vec<(usize, RGBA)> = Vec::new();
+
+                // Draw all windows to change bones color
+                for &bone_idx in &app.ui_system.open_color_windows {
+                    let Some(bone) = app.skeleton.bones().get(bone_idx) else {
+                        continue;
+                    };
+                    // Get the rgb color of the actual bone
+                    let colors = bone.color();
+                    let mut rgb: [f32;4] = [
+                        colors.r as f32 / 255.0,
+                        colors.g as f32 / 255.0,
+                        colors.b as f32 / 255.0,
+                        colors.a as f32 / 255.0
+                    ];
+
+                    // Var to see if color has changed
+                    let mut color_changed = false;
+                    // Var to get the right window title
+                    let window_title = format!("Color: {}##bone_color_{}", bone.label(), bone_idx);
+
+                    ui.window(&window_title)
+                        .size([50.0, 50.0], imgui::Condition::FirstUseEver)
+                        .position([0.0, 0.0], imgui::Condition::FirstUseEver)
+                        .build(|| {
+                        // Color selector for the bone
+                        ui.text("Change color !");
+                        let picker_id = format!("##picker_{}", bone_idx);
+                        if ui.color_picker4(&picker_id, &mut rgb) {
+                            color_changed = true;
+                        }
+                    });
+
+                    if color_changed {
+                        pending_color_update.push((
+                            bone_idx,
+                            RGBA {
+                                r: (rgb[0] * 255.0).round() as u8,
+                                g: (rgb[1] * 255.0).round() as u8,
+                                b: (rgb[2] * 255.0).round() as u8,
+                                a: (rgb[3] * 255.0).round() as u8
+                            }
+                        ));
+                    }
+                }
                 // Change bone color if the color has been changed
-                if color_changed {
-                    if let Some(bone) = app.skeleton.bones_mut().get_mut(app.ui_system.selected_bone) {
-                        bone.change_color(RGBA{
-                            r: (rgb[0] * 255.0).round() as u8,
-                            g: (rgb[1] * 255.0).round() as u8,
-                            b: (rgb[2] * 255.0).round() as u8,
-                            a: (rgb[3] * 255.0).round() as u8
-                        });
+                for (bone_idx, new_color) in pending_color_update {
+                    if let Some(bone) = app.skeleton.bones_mut().get_mut(bone_idx) {
+                        bone.change_color(new_color);
                     }
                 }
         }

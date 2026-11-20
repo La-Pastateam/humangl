@@ -87,11 +87,11 @@ impl Bone {
         self.id
     }
 
-    pub fn get_color(&self) -> RGBA {
+    pub fn color(&self) -> RGBA {
         self.color
     }
 
-    pub fn get_label(&self) -> &String {
+    pub fn label(&self) -> &String {
         &self.label
     }
 
