@@ -1,5 +1,5 @@
 use std::f32::consts::PI;
-use std::ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Sub};
+use std::ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Neg, Sub};
 
 // ── Type ─────────────────────────────────────────────────────────────────
 
@@ -186,6 +186,13 @@ impl Mul<f32> for Vector3 {
     type Output = Vector3;
     fn mul(self, rhs: f32) -> Vector3 {
         vec3(self.x * rhs, self.y * rhs, self.z * rhs)
+    }
+}
+
+impl Neg for Vector3 {
+    type Output = Vector3;
+    fn neg(self) -> Self::Output {
+        vec3(-self.x, -self.y, -self.z)
     }
 }
 
