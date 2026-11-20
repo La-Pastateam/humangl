@@ -20,7 +20,7 @@ impl Rgba {
 // ── Methods ─────────────────────────────────────────────────────────────────
 
 impl Rgba {
-    pub fn to_vec(&self) -> Vec3 {
+    pub fn to_vec(self) -> Vec3 {
         Vec3 {
             x: self.r as f32 / 255.0,
             y: self.g as f32 / 255.0,
