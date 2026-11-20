@@ -1,5 +1,5 @@
 use crate::utils::color::RGBA;
-use crate::utils::math::{Vector3, vec3};
+use crate::utils::math::{Deg, Matrix4, Vector3, vec3};
 
 // ── BONEBUILDER ─────────────────────────────────────────────────────────────────
 
@@ -93,5 +93,12 @@ impl Bone {
 
     pub fn id(&self) -> usize {
         self.id
+    }
+
+    pub fn transform(&self) -> Matrix4 {
+        Matrix4::from_translation(self.anchor)
+            * Matrix4::from_axis_angle(vec3(1.0, 0.0, 0.0), Deg(self.rotation.x))
+            * Matrix4::from_axis_angle(vec3(0.0, 1.0, 0.0), Deg(self.rotation.y))
+            * Matrix4::from_axis_angle(vec3(0.0, 0.0, 1.0), Deg(self.rotation.z))
     }
 }
