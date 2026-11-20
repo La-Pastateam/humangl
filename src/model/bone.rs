@@ -1,4 +1,4 @@
-use crate::utils::color::RGBA;
+use crate::utils::color::Rgba;
 use crate::utils::math::{Deg, Matrix4, Vector3, vec3};
 
 // ── BONEBUILDER ─────────────────────────────────────────────────────────────────
@@ -9,7 +9,7 @@ pub struct BoneBuilder {
     label: String,
     id: usize,
     parent_id: Option<usize>,
-    color: RGBA,
+    color: Rgba,
     dimension: Vector3,
     anchor: Vector3,
     pivot: Vector3,
@@ -23,7 +23,7 @@ impl BoneBuilder {
         self
     }
 
-    pub fn color(mut self, color: RGBA) -> Self {
+    pub fn color(mut self, color: Rgba) -> Self {
         self.color = color;
         self
     }
@@ -64,7 +64,7 @@ pub struct Bone {
     label: String,
     id: usize,
     pub parent_id: Option<usize>,
-    pub color: RGBA,
+    pub color: Rgba,
     pub dimension: Vector3,
     pub rotation: Vector3,
     pub anchor: Vector3,
@@ -87,7 +87,7 @@ impl Bone {
 // ── Methods ─────────────────────────────────────────────────────────────────
 
 impl Bone {
-    pub fn change_color(&mut self, color: RGBA) {
+    pub fn change_color(&mut self, color: Rgba) {
         self.color = color;
     }
 

@@ -1,6 +1,6 @@
 use crate::model::Skeleton;
 use crate::model::bone::Bone;
-use crate::utils::color::RGBA;
+use crate::utils::color::Rgba;
 use crate::utils::math::{Vector3, vec3};
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -44,10 +44,10 @@ impl Side {
 
 impl Skeleton {
     pub fn human(label: String) -> Self {
-        let head_color = RGBA::new(50, 150, 50, 255);
-        let torso_color = RGBA::new(50, 250, 50, 255);
-        let arms_color = RGBA::new(100, 100, 255, 255);
-        let legs_color = RGBA::new(250, 150, 000, 255);
+        let head_color = Rgba::new(50, 150, 50, 255);
+        let torso_color = Rgba::new(50, 250, 50, 255);
+        let arms_color = Rgba::new(100, 100, 255, 255);
+        let legs_color = Rgba::new(250, 150, 000, 255);
 
         let mut bones: Vec<Bone> = vec![
             Bone::builder("Torso", 0)
@@ -75,7 +75,7 @@ impl Skeleton {
 }
 
 //TODO: Appliquer les anchor relatif à leur parent
-fn arm(side: Side, first_id: usize, color: RGBA) -> [Bone; 2] {
+fn arm(side: Side, first_id: usize, color: Rgba) -> [Bone; 2] {
     let s = side.sign();
     let name = side.name();
 
@@ -96,7 +96,7 @@ fn arm(side: Side, first_id: usize, color: RGBA) -> [Bone; 2] {
             .build(),
     ]
 }
-fn leg(side: Side, first_id: usize, color: RGBA) -> [Bone; 2] {
+fn leg(side: Side, first_id: usize, color: Rgba) -> [Bone; 2] {
     let s = side.sign();
     let name = side.name();
     [

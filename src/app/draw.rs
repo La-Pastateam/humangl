@@ -3,18 +3,18 @@ use std::ptr::slice_from_raw_parts;
 use vulkanalia::vk::{self, CommandBuffer, DeviceV1_0};
 
 use super::App;
-use crate::utils::color::RGBA;
+use crate::utils::color::Rgba;
 use crate::utils::math::Matrix4;
 
 impl App {
-    pub unsafe fn draw(&self, command_buffer: CommandBuffer, transform: &Matrix4, color: &RGBA) {
+    pub unsafe fn draw(&self, command_buffer: CommandBuffer, transform: &Matrix4, color: &Rgba) {
         let transform_bytes = &*slice_from_raw_parts(
             transform as *const Matrix4 as *const u8,
             size_of::<Matrix4>(),
         );
 
         let color_bytes =
-            &*slice_from_raw_parts(color as *const RGBA as *const u8, size_of::<RGBA>());
+            &*slice_from_raw_parts(color as *const Rgba as *const u8, size_of::<Rgba>());
 
         self.device.cmd_push_constants(
             command_buffer,
