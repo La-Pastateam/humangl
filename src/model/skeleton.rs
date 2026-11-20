@@ -1,6 +1,9 @@
+use crate::utils::math::{Matrix4, Rad};
 use anyhow::{Context, Result};
 
 use crate::model::bone::Bone;
+
+use crate::matrix_stack::{self, MatrixStack};
 
 #[derive(Debug, Clone)]
 pub struct Skeleton {
@@ -68,6 +71,23 @@ impl Skeleton {
         self.bones
             .iter()
             .filter(move |&bone| bone.parent_id == Some(parent_id))
+    }
+
+    pub fn world_matrices(&self) -> Vec<Matrix4> {
+        let mut stack = MatrixStack::new();
+        let mut result: Vec<Matrix4> = Vec::new();
+
+        for bone in self.bones() {
+            stack.push(bone.transform());
+            let local_mat = stack.top();
+            result.push(*local_mat);
+
+            if self.children(bone.id()).peekable().peek().is_none() {
+                stack.pop();
+            }
+        }
+
+        result
     }
 }
 
