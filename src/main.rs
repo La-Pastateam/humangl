@@ -29,6 +29,7 @@ mod utils;
 mod vulkan;
 
 mod ui_system;
+mod matrix_stack;
 
 // ── Entry Point ───────────────────────────────────────────────────────────────
 
