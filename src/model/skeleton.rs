@@ -1,9 +1,9 @@
-use crate::utils::math::{Deg, Matrix4, vec3};
+use crate::utils::math::Matrix4;
 use anyhow::{Context, Result};
 
 use crate::model::bone::Bone;
 
-use crate::matrix_stack::{self, MatrixStack};
+use crate::matrix_stack::MatrixStack;
 
 #[derive(Debug, Clone)]
 pub struct Skeleton {

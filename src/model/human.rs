@@ -1,6 +1,6 @@
 use crate::model::Skeleton;
 use crate::model::bone::Bone;
-use crate::utils::color::{self, RGBA};
+use crate::utils::color::RGBA;
 use crate::utils::math::{Vector3, vec3};
 
 // ── Constants ─────────────────────────────────────────────────────────────────
