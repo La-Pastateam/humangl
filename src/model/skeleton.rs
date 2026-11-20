@@ -67,6 +67,16 @@ impl Skeleton {
         Ok(())
     }
 
+    fn visit(&self, bone: &Bone, stack: &mut MatrixStack, result: &mut Vec<Matrix4>) {
+        stack.push(bone.transform());
+        let local_mat = stack.top();
+        result[bone.id()] = *local_mat;
+
+        self.children(bone.id())
+            .for_each(|child| self.visit(child, stack, result));
+        stack.pop();
+    }
+
     pub fn children(&self, parent_id: usize) -> impl Iterator<Item = &Bone> {
         self.bones
             .iter()
@@ -75,15 +85,11 @@ impl Skeleton {
 
     pub fn world_matrices(&self) -> Vec<Matrix4> {
         let mut stack = MatrixStack::new();
-        let mut result: Vec<Matrix4> = Vec::new();
+        let mut result: Vec<Matrix4> = vec![Matrix4::identity(); self.bones.len()];
 
         for bone in self.bones() {
-            stack.push(bone.transform());
-            let local_mat = stack.top();
-            result.push(*local_mat);
-
-            if self.children(bone.id()).peekable().peek().is_none() {
-                stack.pop();
+            if bone.parent_id.is_none() {
+                self.visit(bone, &mut stack, &mut result);
             }
         }
 
