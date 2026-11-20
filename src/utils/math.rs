@@ -356,6 +356,10 @@ impl Matrix4 {
 
         self * scale_mat
     }
+
+    pub fn is_identity(&self) -> bool {
+        *self == Matrix4::identity()
+    }
 }
 
 impl Index<usize> for Matrix4 {
