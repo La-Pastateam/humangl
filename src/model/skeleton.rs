@@ -1,4 +1,4 @@
-use crate::utils::math::{Matrix4, Rad};
+use crate::utils::math::{Deg, Matrix4, vec3};
 use anyhow::{Context, Result};
 
 use crate::model::bone::Bone;
@@ -67,20 +67,25 @@ impl Skeleton {
         Ok(())
     }
 
-    fn visit(&self, bone: &Bone, stack: &mut MatrixStack, result: &mut Vec<Matrix4>) {
-        stack.push(bone.transform());
-        let local_mat = stack.top();
-        result[bone.id()] = *local_mat;
-
-        self.children(bone.id())
-            .for_each(|child| self.visit(child, stack, result));
-        stack.pop();
-    }
-
     pub fn children(&self, parent_id: usize) -> impl Iterator<Item = &Bone> {
         self.bones
             .iter()
             .filter(move |&bone| bone.parent_id == Some(parent_id))
+    }
+
+    fn visit(
+        &self,
+        bone: &Bone,
+        parent: Option<&Bone>,
+        stack: &mut MatrixStack,
+        result: &mut [Matrix4],
+    ) {
+        stack.push(bone.transform(parent));
+        result[bone.id()] = *stack.top();
+
+        self.children(bone.id())
+            .for_each(|child| self.visit(child, Some(bone), stack, result));
+        stack.pop();
     }
 
     pub fn world_matrices(&self) -> Vec<Matrix4> {
@@ -89,7 +94,7 @@ impl Skeleton {
 
         for bone in self.bones() {
             if bone.parent_id.is_none() {
-                self.visit(bone, &mut stack, &mut result);
+                self.visit(bone, None, &mut stack, &mut result);
             }
         }
 

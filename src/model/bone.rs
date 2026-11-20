@@ -95,8 +95,17 @@ impl Bone {
         self.id
     }
 
-    pub fn transform(&self) -> Matrix4 {
-        Matrix4::from_translation(self.anchor)
+    pub fn transform(&self, parent: Option<&Bone>) -> Matrix4 {
+        let anchor = match parent {
+            Some(p) => vec3(
+                (self.anchor.x - p.pivot.x) * p.dimension.x,
+                (self.anchor.y - p.pivot.y) * p.dimension.y,
+                (self.anchor.z - p.pivot.z) * p.dimension.z,
+            ),
+            None => self.anchor,
+        };
+
+        Matrix4::from_translation(anchor)
             * Matrix4::from_axis_angle(vec3(1.0, 0.0, 0.0), Deg(self.rotation.x))
             * Matrix4::from_axis_angle(vec3(0.0, 1.0, 0.0), Deg(self.rotation.y))
             * Matrix4::from_axis_angle(vec3(0.0, 0.0, 1.0), Deg(self.rotation.z))
