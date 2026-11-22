@@ -2,7 +2,7 @@ use crate::utils::math::Vec3;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct RGBA {
+pub struct Rgba {
     pub r: u8,
     pub g: u8,
     pub b: u8,
@@ -11,7 +11,7 @@ pub struct RGBA {
 
 // ── Associated Functions ─────────────────────────────────────────────────────────────────
 
-impl RGBA {
+impl Rgba {
     pub fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
         Self { r, g, b, a }
     }
@@ -19,8 +19,8 @@ impl RGBA {
 
 // ── Methods ─────────────────────────────────────────────────────────────────
 
-impl RGBA {
-    pub fn to_vec(&self) -> Vec3 {
+impl Rgba {
+    pub fn to_vec(self) -> Vec3 {
         Vec3 {
             x: self.r as f32 / 255.0,
             y: self.g as f32 / 255.0,
@@ -31,8 +31,8 @@ impl RGBA {
 
 // ── Trait Implementations ─────────────────────────────────────────────────────────────────
 
-impl Default for RGBA {
+impl Default for Rgba {
     fn default() -> Self {
-        RGBA::new(255, 255, 255, 255)
+        Rgba::new(255, 255, 255, 255)
     }
 }

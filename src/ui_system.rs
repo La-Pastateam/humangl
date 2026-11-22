@@ -13,7 +13,7 @@ use crate::app::{App, AppData};
 use crate::vulkan::image::{create_image, create_image_view, transition_image_layout, copy_buffer_to_image};
 use crate::vulkan::pipeline::{create_shader_module};
 use crate::vulkan::device::QueueFamilyIndices;
-use crate::utils::color::{RGBA};
+use crate::utils::color::Rgba;
 
 const DEFAULT_VTX_COUNT: usize = 5000;
 const DEFAULT_IDX_COUNT: usize = 10000;
@@ -835,7 +835,7 @@ impl UiSystem {
                 // Save new x size for the left ui
                 app.ui_system.interface_x = current_interface_x;
 
-                let mut pending_color_update : Vec<(usize, RGBA)> = Vec::new();
+                let mut pending_color_update : Vec<(usize, Rgba)> = Vec::new();
 
                 // Draw all windows to change bones color
                 for &bone_idx in &app.ui_system.open_color_windows {
@@ -871,7 +871,7 @@ impl UiSystem {
                     if color_changed {
                         pending_color_update.push((
                             bone_idx,
-                            RGBA {
+                            Rgba {
                                 r: (rgb[0] * 255.0).round() as u8,
                                 g: (rgb[1] * 255.0).round() as u8,
                                 b: (rgb[2] * 255.0).round() as u8,

@@ -1,5 +1,5 @@
-use crate::utils::color::RGBA;
-use crate::utils::math::{Vector3, vec3};
+use crate::utils::color::Rgba;
+use crate::utils::math::{Deg, Matrix4, Vector3, vec3};
 
 // ── BONEBUILDER ─────────────────────────────────────────────────────────────────
 
@@ -9,8 +9,9 @@ pub struct BoneBuilder {
     label: String,
     id: usize,
     parent_id: Option<usize>,
-    color: RGBA,
+    color: Rgba,
     dimension: Vector3,
+    anchor: Vector3,
     pivot: Vector3,
 }
 
@@ -22,13 +23,18 @@ impl BoneBuilder {
         self
     }
 
-    pub fn color(mut self, color: RGBA) -> Self {
+    pub fn color(mut self, color: Rgba) -> Self {
         self.color = color;
         self
     }
 
     pub fn dimension(mut self, dimension: Vector3) -> Self {
         self.dimension = dimension;
+        self
+    }
+
+    pub fn anchor(mut self, anchor: Vector3) -> Self {
+        self.anchor = anchor;
         self
     }
 
@@ -44,6 +50,7 @@ impl BoneBuilder {
             parent_id: self.parent_id,
             color: self.color,
             dimension: self.dimension,
+            anchor: self.anchor,
             pivot: self.pivot,
             ..Default::default()
         }
@@ -57,9 +64,10 @@ pub struct Bone {
     pub label: String,
     id: usize,
     pub parent_id: Option<usize>,
-    pub color: RGBA,
+    pub color: Rgba,
     pub dimension: Vector3,
     pub rotation: Vector3,
+    pub anchor: Vector3,
     pub pivot: Vector3,
 }
 
@@ -79,7 +87,7 @@ impl Bone {
 // ── Methods ─────────────────────────────────────────────────────────────────
 
 impl Bone {
-    pub fn change_color(&mut self, color: RGBA) {
+    pub fn change_color(&mut self, color: Rgba) {
         self.color = color;
     }
 
@@ -87,7 +95,7 @@ impl Bone {
         self.id
     }
 
-    pub fn color(&self) -> RGBA {
+    pub fn color(&self) -> Rgba {
         self.color
     }
 
@@ -95,4 +103,19 @@ impl Bone {
         &self.label
     }
 
+    pub fn transform(&self, parent: Option<&Bone>) -> Matrix4 {
+        let anchor = match parent {
+            Some(p) => vec3(
+                (self.anchor.x - p.pivot.x) * p.dimension.x,
+                (self.anchor.y - p.pivot.y) * p.dimension.y,
+                (self.anchor.z - p.pivot.z) * p.dimension.z,
+            ),
+            None => self.anchor,
+        };
+
+        Matrix4::from_translation(anchor)
+            * Matrix4::from_axis_angle(vec3(1.0, 0.0, 0.0), Deg(self.rotation.x))
+            * Matrix4::from_axis_angle(vec3(0.0, 1.0, 0.0), Deg(self.rotation.y))
+            * Matrix4::from_axis_angle(vec3(0.0, 0.0, 1.0), Deg(self.rotation.z))
+    }
 }
