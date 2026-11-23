@@ -1,4 +1,4 @@
-use imgui::{Context, FontConfig, FontGlyphRanges, FontSource, StyleColor};
+use imgui::{Context, FontConfig, FontGlyphRanges, FontSource, StyleColor, Ui};
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
 use winit::window::Window;
 use imgui::internal::RawWrapper;
@@ -6,6 +6,7 @@ use imgui::internal::RawWrapper;
 use anyhow::Result;
 use vulkanalia::prelude::v1_0::*;
 
+use std::collections::HashMap;
 use std::ptr::copy_nonoverlapping as memcpy;
 
 use crate::vulkan::buffer::{create_buffer};
@@ -46,9 +47,10 @@ pub struct UiSystem {
     pub ui_command_pool: vk::CommandPool,
 
     pub ui_visible: bool,
-    interface_x: f32,
+    general_menu_x: f32,
     selected_bone: usize,
     open_color_windows: Vec<usize>,
+    tiled_windows: HashMap<usize, bool>,
 }
 
 
@@ -388,7 +390,11 @@ impl UiSystem {
         Ok((pipeline, pipeline_layout))
     }
 
-    fn setup_style(imgui: &mut Context) {
+    fn set_style_window<'ui>(ui: &'ui Ui) -> imgui::StyleStackToken<'ui> {
+        ui.push_style_var(imgui::StyleVar::WindowRounding(10.0))
+    }
+
+    fn setup_general_style(imgui: &mut Context) {
         // Get style var
         let style = imgui.style_mut();
 
@@ -483,7 +489,7 @@ impl UiSystem {
         // Link with window and imgui
         let mut imgui = Context::create();
 
-        UiSystem::setup_style(&mut imgui);
+        UiSystem::setup_general_style(&mut imgui);
 
         let mut platform = WinitPlatform::new(&mut imgui);
         platform.attach_window(imgui.io_mut(), window, HiDpiMode::Default);
@@ -567,9 +573,10 @@ impl UiSystem {
             ui_secondary_command_buffers,
             ui_command_pool,
             ui_visible: true,
-            interface_x: 300.0,
+            general_menu_x: 300.0,
             selected_bone: 0,
-            open_color_windows:Vec::new(),
+            open_color_windows: Vec::new(),
+            tiled_windows: HashMap::new(),
         })
     }
 
@@ -785,7 +792,6 @@ impl UiSystem {
     }
 
     pub unsafe fn draw_window(app: &mut App) -> Result<()> {
-
         // Render UI
         let ui = app.ui_system.imgui.frame();
 
@@ -793,11 +799,11 @@ impl UiSystem {
             // Get display size
             let display_size = ui.io().display_size;
             // Get the actual x value of the left ui
-            let mut current_interface_x = app.ui_system.interface_x;
+            let mut current_general_menu_x = app.ui_system.general_menu_x;
 
             // Prepare left ui window
             ui.window("Editor")
-                .size([current_interface_x, display_size[1] + 50.0], imgui::Condition::Always)
+                .size([current_general_menu_x, display_size[1] + 50.0], imgui::Condition::Always)
                 .position([0.0, 0.0], imgui::Condition::Always)
                 .flags(
                     imgui::WindowFlags::NO_MOVE
@@ -805,7 +811,7 @@ impl UiSystem {
                 )
                 .build(|| {
                     // Get new window size
-                    current_interface_x = ui.window_size()[0];
+                    current_general_menu_x = ui.window_size()[0];
 
                     // Get bones vec
                     let bones = app.skeleton.bones();
@@ -833,12 +839,15 @@ impl UiSystem {
                     }
                 });
                 // Save new x size for the left ui
-                app.ui_system.interface_x = current_interface_x;
+                app.ui_system.general_menu_x = current_general_menu_x;
 
                 let mut pending_color_update : Vec<(usize, Rgba)> = Vec::new();
+                let mut still_open: Vec<usize> = Vec::new();
+
+                let _style = UiSystem::set_style_window(&ui);
 
                 // Draw all windows to change bones color
-                for &bone_idx in &app.ui_system.open_color_windows {
+                for (i, &bone_idx) in app.ui_system.open_color_windows.iter().enumerate() {
                     let Some(bone) = app.skeleton.bones().get(bone_idx) else {
                         continue;
                     };
@@ -855,10 +864,13 @@ impl UiSystem {
                     let mut color_changed = false;
                     // Var to get the right window title
                     let window_title = format!("Color: {}##bone_color_{}", bone.label(), bone_idx);
+                    // Var to see if window is still open
+                    let mut is_open = true;
 
                     ui.window(&window_title)
-                        .size([50.0, 50.0], imgui::Condition::FirstUseEver)
-                        .position([0.0, 0.0], imgui::Condition::FirstUseEver)
+                        .size([display_size[0] / 6.0, display_size[1] / 4.0], imgui::Condition::FirstUseEver)
+                        .position([(display_size[0] / 2.0) + (i as f32 * 20.0), (display_size[1] / 4.0) + (i as f32 * 20.0)], imgui::Condition::FirstUseEver)
+                        .opened(&mut is_open)
                         .build(|| {
                         // Color selector for the bone
                         ui.text("Change color !");
@@ -867,6 +879,10 @@ impl UiSystem {
                             color_changed = true;
                         }
                     });
+
+                    if is_open {
+                        still_open.push(bone_idx);
+                    }
 
                     if color_changed {
                         pending_color_update.push((
@@ -880,6 +896,11 @@ impl UiSystem {
                         ));
                     }
                 }
+
+                drop(_style);
+                // Close windows that need to be closed
+                app.ui_system.open_color_windows = still_open;
+
                 // Change bone color if the color has been changed
                 for (bone_idx, new_color) in pending_color_update {
                     if let Some(bone) = app.skeleton.bones_mut().get_mut(bone_idx) {
