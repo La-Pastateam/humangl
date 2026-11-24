@@ -11,7 +11,6 @@ use winit::window::Window;
 use vulkanalia::vk::KhrSwapchainExtensionDeviceCommands;
 
 use super::App;
-use crate::model::Skeleton;
 use crate::utils::math::{self, Deg, Mat4, Point3, Vector3, point3, vec3};
 use crate::vulkan::buffer::UniformBufferObject;
 use crate::vulkan::sync::MAX_FRAMES_IN_FLIGHT;
