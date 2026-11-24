@@ -11,6 +11,7 @@ use winit::window::Window;
 use vulkanalia::vk::KhrSwapchainExtensionDeviceCommands;
 
 use super::App;
+use crate::animation::Animate;
 use crate::utils::math::{self, Deg, Mat4, Point3, Vector3, point3, vec3};
 use crate::vulkan::buffer::UniformBufferObject;
 use crate::vulkan::sync::MAX_FRAMES_IN_FLIGHT;
@@ -60,6 +61,10 @@ impl App {
 
         // Render UI
         self.ui_system.draw_window(&mut self.data);
+
+        //Launch the animation
+        let time = self.start.elapsed().as_secs_f32();
+        self.human.update(1.0);
 
         self.update_command_buffer(image_index)?;
         self.update_uniform_buffer(image_index)?;
@@ -258,8 +263,6 @@ impl App {
     }
 
     unsafe fn update_uniform_buffer(&self, image_index: usize) -> Result<()> {
-        let time = self.start.elapsed().as_secs_f32();
-
         let view = Mat4::look_at_rh(EYE, CENTER, UP);
 
         let correction = Mat4::new(
