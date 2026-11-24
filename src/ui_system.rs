@@ -838,75 +838,144 @@ impl UiSystem {
                         }
                     }
                 });
-                // Save new x size for the left ui
-                app.ui_system.general_menu_x = current_general_menu_x;
+            // Save new x size for the left ui
+            app.ui_system.general_menu_x = current_general_menu_x;
 
-                let mut pending_color_update : Vec<(usize, Rgba)> = Vec::new();
-                let mut still_open: Vec<usize> = Vec::new();
+            let bone_count = app.skeleton.bones().len();
+            let snap_zone_x = display_size[0] * 0.80;
 
-                let _style = UiSystem::set_style_window(&ui);
+            // Get tiled windows that are still displayed
+            app.ui_system
+                .tiled_windows
+                .retain(|idx, _| *idx < bone_count && app.ui_system.open_color_windows.contains(idx));
 
-                // Draw all windows to change bones color
-                for (i, &bone_idx) in app.ui_system.open_color_windows.iter().enumerate() {
-                    let Some(bone) = app.skeleton.bones().get(bone_idx) else {
-                        continue;
-                    };
-                    // Get the rgb color of the actual bone
-                    let colors = bone.color();
-                    let mut rgb: [f32;4] = [
-                        colors.r as f32 / 255.0,
-                        colors.g as f32 / 255.0,
-                        colors.b as f32 / 255.0,
-                        colors.a as f32 / 255.0
-                    ];
+            // Count the number of tiled windows
+            let tiled_count = app
+                .ui_system
+                .open_color_windows
+                .iter()
+                .filter(|idx| *app.ui_system.tiled_windows.get(idx).unwrap_or(&false))
+                .count();
 
-                    // Var to see if color has changed
-                    let mut color_changed = false;
-                    // Var to get the right window title
-                    let window_title = format!("Color: {}##bone_color_{}", bone.label(), bone_idx);
-                    // Var to see if window is still open
-                    let mut is_open = true;
+            let tiled_width = if tiled_count > 0 {
+                (display_size[0] - snap_zone_x).max(120.0) / tiled_count as f32
+            } else {
+                0.0
+            };
 
-                    ui.window(&window_title)
-                        .size([display_size[0] / 6.0, display_size[1] / 4.0], imgui::Condition::FirstUseEver)
-                        .position([(display_size[0] / 2.0) + (i as f32 * 20.0), (display_size[1] / 4.0) + (i as f32 * 20.0)], imgui::Condition::FirstUseEver)
-                        .opened(&mut is_open)
-                        .build(|| {
-                        // Color selector for the bone
-                        ui.text("Change color !");
-                        let picker_id = format!("##picker_{}", bone_idx);
-                        if ui.color_picker4(&picker_id, &mut rgb) {
-                            color_changed = true;
+            let mut tiled_slot: usize = 0;
+            let mut pending_tile_update : Vec<(usize, bool)> = Vec::new();
+            let mut pending_color_update : Vec<(usize, Rgba)> = Vec::new();
+            let mut still_open: Vec<usize> = Vec::new();
+
+            let _style = UiSystem::set_style_window(&ui);
+
+            // Draw all windows to change bones color
+            for (i, &bone_idx) in app.ui_system.open_color_windows.iter().enumerate() {
+                let Some(bone) = app.skeleton.bones().get(bone_idx) else {
+                    continue;
+                };
+                // Get the rgb color of the actual bone
+                let colors = bone.color();
+                let mut rgb: [f32;4] = [
+                    colors.r as f32 / 255.0,
+                    colors.g as f32 / 255.0,
+                    colors.b as f32 / 255.0,
+                    colors.a as f32 / 255.0
+                ];
+
+                // Var to see if color has changed
+                let mut color_changed = false;
+                // Var to get the right window title
+                let window_title = format!("Color: {}##bone_color_{}", bone.label(), bone_idx);
+                // Var to see if window is still open
+                let mut is_open = true;
+                // See if the window is tiled
+                let is_tiled = *app.ui_system.tiled_windows.get(&bone_idx).unwrap_or(&false);
+                let mut next_tiled = is_tiled;
+
+                let free_size = [display_size[0] / 6.0, display_size[1] / 4.0];
+                let free_pos = [(display_size[0] / 2.0) + (i as f32 * 20.0), (display_size[1] / 4.0) + (i as f32 * 20.0)];
+
+                let mut win_size = free_size;
+                let mut win_pos = free_pos;
+                let mut dragging_window = false;
+
+                let mut builder = ui
+                    .window(&window_title)
+                    .opened(&mut is_open);
+
+                if is_tiled {
+                    let x = snap_zone_x + (tiled_slot as f32) * tiled_width;
+                    tiled_slot += 1;
+                    builder = builder
+                        .position([x, 0.0], imgui::Condition::Always)
+                        .size([tiled_width, display_size[1]], imgui::Condition::Always);
+                } else {
+                    builder = builder
+                        .position(free_pos, imgui::Condition::FirstUseEver)
+                        .size(free_size, imgui::Condition::FirstUseEver);
+                };
+
+                builder.build(|| {
+                    win_pos = ui.window_pos();
+                    win_size = ui.window_size();
+                    dragging_window = ui.is_window_hovered()
+                        && ui.is_mouse_dragging(imgui::MouseButton::Left);
+
+
+                    // Color selector for the bone
+                    ui.text("Change color !");
+                    if is_tiled && ui.small_button("untile") {
+                        next_tiled = false;
+                    }
+
+                    let picker_id = format!("##picker_{}", bone_idx);
+                    if ui.color_picker4(&picker_id, &mut rgb) {
+                        color_changed = true;
+                    }
+                });
+
+                let right_edge = win_pos[0] + win_size[0];
+                let enters_right_zone = right_edge >= snap_zone_x;
+
+                next_tiled = !is_tiled && enters_right_zone;
+
+                if next_tiled != is_tiled {
+                    pending_tile_update.push((bone_idx, next_tiled));
+                }
+
+                if is_open {
+                    still_open.push(bone_idx);
+                }
+
+                if color_changed {
+                    pending_color_update.push((
+                        bone_idx,
+                        Rgba {
+                            r: (rgb[0] * 255.0).round() as u8,
+                            g: (rgb[1] * 255.0).round() as u8,
+                            b: (rgb[2] * 255.0).round() as u8,
+                            a: (rgb[3] * 255.0).round() as u8
                         }
-                    });
-
-                    if is_open {
-                        still_open.push(bone_idx);
-                    }
-
-                    if color_changed {
-                        pending_color_update.push((
-                            bone_idx,
-                            Rgba {
-                                r: (rgb[0] * 255.0).round() as u8,
-                                g: (rgb[1] * 255.0).round() as u8,
-                                b: (rgb[2] * 255.0).round() as u8,
-                                a: (rgb[3] * 255.0).round() as u8
-                            }
-                        ));
-                    }
+                    ));
                 }
+            }
 
-                drop(_style);
-                // Close windows that need to be closed
-                app.ui_system.open_color_windows = still_open;
+            drop(_style);
+            // Close windows that need to be closed
+            app.ui_system.open_color_windows = still_open;
 
-                // Change bone color if the color has been changed
-                for (bone_idx, new_color) in pending_color_update {
-                    if let Some(bone) = app.skeleton.bones_mut().get_mut(bone_idx) {
-                        bone.change_color(new_color);
-                    }
+            for (bone_idx, tiled) in pending_tile_update {
+                app.ui_system.tiled_windows.insert(bone_idx, tiled);
+            }
+
+            // Change bone color if the color has been changed
+            for (bone_idx, new_color) in pending_color_update {
+                if let Some(bone) = app.skeleton.bones_mut().get_mut(bone_idx) {
+                    bone.change_color(new_color);
                 }
+            }
         }
         Ok(())
     }
