@@ -168,8 +168,11 @@ impl App {
             vk::SubpassContents::SECONDARY_COMMAND_BUFFERS,
         );
 
-        let world = self.skeleton.world_matrices();
-        let secondary_command_buffer = (0..self.skeleton.bones().len())
+        let skeleton = self.human.skeleton();
+
+        let world = skeleton.world_matrices();
+        let bone_len = skeleton.bones().len();
+        let secondary_command_buffer = (0..bone_len)
             .map(|i| self.update_secondary_command_buffer(image_index, i, &world))
             .collect::<Result<Vec<_>, _>>()?;
         self.device
@@ -243,7 +246,7 @@ impl App {
             &[],
         );
 
-        let bone = &self.skeleton.bones()[model_index];
+        let bone = &self.human.skeleton().bones()[model_index];
         let transform = world[model_index]
             * Mat4::from_scale(bone.dimension)
             * Mat4::from_translation(-bone.pivot);

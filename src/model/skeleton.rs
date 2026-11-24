@@ -7,25 +7,18 @@ use crate::matrix_stack::MatrixStack;
 
 #[derive(Debug, Clone)]
 pub struct Skeleton {
-    label: String,
     bones: Vec<Bone>,
 }
 
 // ── Associated Functions ─────────────────────────────────────────────────────────────────
 
 impl Skeleton {
-    pub fn new(label: impl Into<String>) -> Self {
-        Skeleton {
-            label: label.into(),
-            bones: Vec::new(),
-        }
+    pub fn new() -> Self {
+        Skeleton { bones: Vec::new() }
     }
 
-    pub fn from_bones(label: impl Into<String>, bones: Vec<Bone>) -> Self {
-        Skeleton {
-            label: label.into(),
-            bones,
-        }
+    pub fn from_bones(bones: Vec<Bone>) -> Self {
+        Skeleton { bones }
     }
 }
 
@@ -38,11 +31,6 @@ impl Skeleton {
 
     pub fn add_bone(mut self, bone: Bone) -> Self {
         self.bones.push(bone);
-        self
-    }
-
-    pub fn rename(mut self, new_label: String) -> Self {
-        self.label = new_label;
         self
     }
 

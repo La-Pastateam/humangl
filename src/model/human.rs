@@ -42,8 +42,16 @@ impl Side {
 
 // ── Human ─────────────────────────────────────────────────────────────────
 
-impl Skeleton {
-    pub fn human(label: String) -> Self {
+#[derive(Debug, Clone)]
+pub struct Human {
+    label: String,
+    skeleton: Skeleton,
+}
+
+// ── Associated Functions ─────────────────────────────────────────────────────────────────
+
+impl Human {
+    pub fn woman(label: impl Into<String>) -> Self {
         let head_color = Rgba::new(50, 150, 50, 255);
         let torso_color = Rgba::new(50, 250, 50, 255);
         let arms_color = Rgba::new(100, 100, 255, 255);
@@ -70,9 +78,32 @@ impl Skeleton {
         bones.extend(leg(Side::Left, 6, legs_color));
         bones.extend(leg(Side::Right, 8, legs_color));
 
-        Skeleton::from_bones(label, bones)
+        let skeleton = Skeleton::from_bones(bones);
+
+        Human {
+            label: label.into(),
+            skeleton,
+        }
     }
 }
+
+// ── Methods ─────────────────────────────────────────────────────────────────
+
+impl Human {
+    pub fn skeleton(&self) -> &Skeleton {
+        &self.skeleton
+    }
+
+    pub fn label(&self) -> &String {
+        &self.label
+    }
+
+    pub fn rename(&mut self, new_label: String) {
+        self.label = new_label;
+    }
+}
+
+// ── Helper ─────────────────────────────────────────────────────────────────
 
 //TODO: Appliquer les anchor relatif à leur parent
 fn arm(side: Side, first_id: usize, color: Rgba) -> [Bone; 2] {
