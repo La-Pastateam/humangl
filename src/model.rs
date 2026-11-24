@@ -8,3 +8,4 @@ mod skeleton;
 pub use skeleton::Skeleton;
 
 mod human;
+pub use human::Human;
