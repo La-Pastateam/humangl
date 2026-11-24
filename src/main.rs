@@ -6,21 +6,22 @@
     clippy::unnecessary_wraps
 )]
 
+use anyhow::Result;
+use log::*;
+use std::time::Instant;
 use winit::application::ApplicationHandler;
 use winit::dpi::LogicalSize;
 use winit::event::ElementState;
-use winit::event::{Event, WindowEvent, StartCause};
-use winit::event_loop::{EventLoop, ActiveEventLoop};
+use winit::event::{Event, StartCause, WindowEvent};
+use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::window::{Window, WindowId};
-use std::time::Instant;
-use anyhow::Result;
-use log::*;
 
 use std::process;
 
 use app::App;
 use interactions::key::*;
 
+mod animation;
 mod app;
 mod interactions;
 mod model;
@@ -28,11 +29,10 @@ mod parser;
 mod utils;
 mod vulkan;
 
-mod ui_system;
 mod matrix_stack;
+mod ui_system;
 
 // ── Entry Point ───────────────────────────────────────────────────────────────
-
 
 struct GeneralApp {
     window: Option<Window>,
@@ -62,7 +62,10 @@ impl ApplicationHandler for GeneralApp {
     fn new_events(&mut self, _event_loop: &ActiveEventLoop, _cause: StartCause) {
         if let Some(app) = &mut self.app {
             let now = Instant::now();
-            app.ui_system.imgui.io_mut().update_delta_time(now - self.last_frame);
+            app.ui_system
+                .imgui
+                .io_mut()
+                .update_delta_time(now - self.last_frame);
             self.last_frame = now;
         }
     }
@@ -81,7 +84,7 @@ impl ApplicationHandler for GeneralApp {
         &mut self,
         event_loop: &ActiveEventLoop,
         window_id: WindowId,
-        event: WindowEvent
+        event: WindowEvent,
     ) {
         let (Some(window), Some(app)) = (&self.window, &mut self.app) else {
             return;
@@ -109,7 +112,10 @@ impl ApplicationHandler for GeneralApp {
                     self.minimized = true;
                 } else {
                     self.minimized = false;
-                    unsafe {app.recreate_swapchain(window).expect("Swapchain recreation failed");}
+                    unsafe {
+                        app.recreate_swapchain(window)
+                            .expect("Swapchain recreation failed");
+                    }
                 }
             }
             // Destroy our Vulkan app.
@@ -119,24 +125,23 @@ impl ApplicationHandler for GeneralApp {
 
             WindowEvent::KeyboardInput { event, .. }
                 if event.state == ElementState::Pressed
-                && !app.ui_system.imgui.io().want_capture_keyboard => {
-                    match handle_input(event.physical_key, &mut app.data) {
-                        Ok(Signal::ToggleUi) => app.ui_system.ui_visible = !app.ui_system.ui_visible,
-                        Ok(Signal::Nothing) => {}
-                        Ok(Signal::Exit) => {
-                            exit_app(app, event_loop);
-                        }
-                        Err(e) => {
-                            error!("Error has ocurred while operating input {e}");
-                        }
-                    };
-                }
+                    && !app.ui_system.imgui.io().want_capture_keyboard =>
+            {
+                match handle_input(event.physical_key, &mut app.data) {
+                    Ok(Signal::ToggleUi) => app.ui_system.ui_visible = !app.ui_system.ui_visible,
+                    Ok(Signal::Nothing) => {}
+                    Ok(Signal::Exit) => {
+                        exit_app(app, event_loop);
+                    }
+                    Err(e) => {
+                        error!("Error has ocurred while operating input {e}");
+                    }
+                };
+            }
             _ => {}
         }
-
     }
 }
-
 
 fn main() -> Result<()> {
     pretty_env_logger::init();
