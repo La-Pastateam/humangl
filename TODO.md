@@ -90,6 +90,7 @@
 
 * Remettre le code bien dans des dossiers (vulkan par exemple)
 * Ajotuer un scroll de caméra par la souris
+* Modifier la structure Human afin d'avoir une plus grande latitude dans la création d'humain.
 * Adapter le main a winit 0.30 ✅
 
 ## **INFO**
