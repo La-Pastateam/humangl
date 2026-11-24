@@ -85,6 +85,7 @@
 * Déterminer combien de temps prends une transformation afin d'établir une durée d'animation (ou alors boucler l'anim ?)
   * A faire avec `time_elapsed` probablement
 * Pouvoir modifier la vitesse d'une animation ?
+* Ajouter une BoxDyn<> pour l'app afin de render n'importe quel model possedant une animation.
 
 ## **VII.** Finitions
 
