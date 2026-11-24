@@ -42,7 +42,7 @@
 > Non nécessaire, l'objet peut se resize grace à `scale()` appliqué à la ~matrice transformation de l'os~ au vecteur dimension de l'os
 
 * Changement du Bone => Plus de matrice4 générale mais juste les dimension, la rotation et le point pivot sous forme de vec3.✅
-* Determiner où placer le point Pivot
+* Determiner où placer le point Pivot✅
 
 ## **III.** Rendre Graphique le skeleton -> tcros
 
@@ -55,9 +55,9 @@
 * Ajouter le ~model skeleton à la swapchain~ skeleton et ses os à l'App afin de draw chacun d'entres eux en passant par le `update_secondary_buffer`.✅
 *
 
-## **IV.** Préparer la Mutant Stack (Matrice Stack) -> nbacconn
+## **IV.** Préparer la Mutant Stack (Matrice Stack) -> nbacconn et tcros
 
-* Créer une matrice stack afin de déterminer les positions de points d'accroche entre les membres
+* Créer une matrice stack afin de déterminer les positions de points d'accroche entre les membres✅ (nbacconn)
 * fonction permettant de déplacer un membre "enfant". Devra modifier aussi les membres "parents"
 * fonction qui fait une translation entre 2 points
   * Formula : T⁻¹RT, On fait une translation du bone a partir de l'origin, on applique la rotation puis on réapplique la translation.
@@ -78,10 +78,10 @@
 ## **VI.** Les Animations
 
 * Préparer des points précis d'étapes pour les animations (voir avec l'interface ?)
- 	* Je pense perso (tcros) a un fichier externe qu'on lit pour effectuer l'animation.
+  * Je pense perso (tcros) a un fichier externe qu'on lit pour effectuer l'animation.
 * Ajouter des états généraux `AnimationState` en enum(Idle, Walking, Jumping, SixSevening, FortniteDancing)
- 	* Préparer une interpolation d'état (transition smooth entre deux états) afin d'empêcher de la "téléortation" des membres
- 	* Les mouvement de base risque d'être rigide, peut être ajouter une fonction de "easing" pour une acceleration et décélération entre les étapes du mouvement.
+  * Préparer une interpolation d'état (transition smooth entre deux états) afin d'empêcher de la "téléortation" des membres
+  * Les mouvement de base risque d'être rigide, peut être ajouter une fonction de "easing" pour une acceleration et décélération entre les étapes du mouvement.
 * Déterminer combien de temps prends une transformation afin d'établir une durée d'animation (ou alors boucler l'anim ?)
   * A faire avec `time_elapsed` probablement
 * Pouvoir modifier la vitesse d'une animation ?
@@ -89,6 +89,7 @@
 ## **VII.** Finitions
 
 * Remettre le code bien dans des dossiers (vulkan par exemple)
+* Ajotuer un scroll de caméra par la souris
 * Adapter le main a winit 0.30 ✅
 
 ## **INFO**
