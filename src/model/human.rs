@@ -1,3 +1,4 @@
+use crate::animation::{Animate, AnimationClip, Animator};
 use crate::model::Skeleton;
 use crate::model::bone::Bone;
 use crate::utils::color::Rgba;
@@ -15,6 +16,30 @@ const FOREARM_DIM: Vector3 = vec3(7.5, 25.0, 7.5);
 const THIGH_DIM: Vector3 = vec3(14.5, 42.0, 15.5);
 const LOWERLEG_DIM: Vector3 = vec3(10.5, 42.0, 11.0);
 const LEG_LENGTH: f32 = THIGH_DIM.y + LOWERLEG_DIM.y;
+
+// ── AnimationState ─────────────────────────────────────────────────────────────────
+
+#[derive(Clone, Debug, Default)]
+enum AnimationState {
+    #[default]
+    Idle,
+    Walking,
+    Jumping,
+    SixSevening,
+    FortniteDancing,
+}
+
+impl AnimationClip for AnimationState {
+    fn duration(&self) -> f32 {
+        match self {
+            Self::Idle => 1.0,
+            Self::Walking => 1.0,
+            Self::Jumping => 1.0,
+            Self::SixSevening => 1.0,
+            Self::FortniteDancing => 1.0,
+        }
+    }
+}
 
 // ── Side ─────────────────────────────────────────────────────────────────
 
@@ -42,10 +67,11 @@ impl Side {
 
 // ── Human ─────────────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct Human {
     label: String,
     skeleton: Skeleton,
+    animation: Animator<AnimationState>,
 }
 
 // ── Associated Functions ─────────────────────────────────────────────────────────────────
@@ -83,6 +109,7 @@ impl Human {
         Human {
             label: label.into(),
             skeleton,
+            animation: Animator::default(),
         }
     }
 }
@@ -90,16 +117,25 @@ impl Human {
 // ── Methods ─────────────────────────────────────────────────────────────────
 
 impl Human {
-    pub fn skeleton(&self) -> &Skeleton {
-        &self.skeleton
-    }
-
     pub fn label(&self) -> &String {
         &self.label
     }
 
     pub fn rename(&mut self, new_label: String) {
         self.label = new_label;
+    }
+}
+
+// ── Trait Implementations ─────────────────────────────────────────────────────────────────
+
+impl Animate for Human {
+    fn update(&mut self, dt: f32) {
+        let time = self.animation.advance(dt);
+        let state = self.animation.state();
+    }
+
+    fn skeleton(&self) -> &Skeleton {
+        &self.skeleton
     }
 }
 
