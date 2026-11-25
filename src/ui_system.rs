@@ -1,4 +1,4 @@
-use imgui::{Context, FontConfig, FontGlyphRanges, FontSource, StyleColor, Ui};
+use imgui::{Context, FontConfig, FontGlyphRanges, FontSource, StyleColor, StyleStackToken, Ui};
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
 use winit::window::Window;
 use imgui::internal::RawWrapper;
@@ -18,6 +18,8 @@ use crate::utils::color::Rgba;
 
 const DEFAULT_VTX_COUNT: usize = 5000;
 const DEFAULT_IDX_COUNT: usize = 10000;
+
+const MENU_BAR_SIZE_PX: f32 = 30.0;
 
 #[derive(Debug)]
 pub struct UiSystem {
@@ -392,6 +394,10 @@ impl UiSystem {
 
     fn set_style_window<'ui>(ui: &'ui Ui) -> imgui::StyleStackToken<'ui> {
         ui.push_style_var(imgui::StyleVar::WindowRounding(10.0))
+    }
+
+    fn set_style_tiled<'ui>(ui: &'ui Ui) -> imgui::StyleStackToken<'ui> {
+        ui.push_style_var(imgui::StyleVar::WindowRounding(0.0))
     }
 
     fn setup_general_style(imgui: &mut Context) {
@@ -801,13 +807,18 @@ impl UiSystem {
             // Get the actual x value of the left ui
             let mut current_general_menu_x = app.ui_system.general_menu_x;
 
+            let _padding = ui.push_style_var(imgui::StyleVar::WindowPadding([display_size[0] * 0.33, 1.0]));
             // Prepare left ui window
             ui.window("Editor")
-                .size([current_general_menu_x, display_size[1] + 50.0], imgui::Condition::Always)
+                .size([display_size[0], MENU_BAR_SIZE_PX], imgui::Condition::Always)
                 .position([0.0, 0.0], imgui::Condition::Always)
                 .flags(
                     imgui::WindowFlags::NO_MOVE
                     | imgui::WindowFlags::NO_COLLAPSE
+                    | imgui::WindowFlags::NO_TITLE_BAR
+                    | imgui::WindowFlags::NO_RESIZE
+                    | imgui::WindowFlags::NO_SCROLLBAR
+                    | imgui::WindowFlags::NO_SCROLL_WITH_MOUSE
                 )
                 .build(|| {
                     // Get new window size
@@ -822,12 +833,26 @@ impl UiSystem {
                             app.ui_system.selected_bone = 0;
                         }
 
+                        let combo_w = 150.0;
+                        let spacing = 8.0;
+                        let btn_w = ui.calc_text_size("Open Color Window")[0] + 2.0 * 2.0;
+                        let total_w = combo_w + spacing + btn_w;
+
+                        let start_x = ((display_size[0] - total_w) * 0.5).max(8.0);
+
+                        let _width = ui.push_item_width(combo_w);
+
+                        ui.set_cursor_pos([start_x, 0.0]);
                         // Init bone selector
                         if ui.combo("##bone_selector", &mut app.ui_system.selected_bone, bones, |bone| {
                             std::borrow::Cow::Borrowed(bone.label())
                         }) {
                             // Code executed when we select a new one
                         };
+
+                        drop(_width);
+
+                        ui.same_line_with_spacing(0.0, spacing);
 
                         // Button to open a new color selector for the current bone
                         if ui.button("Open Color Window") {
@@ -838,6 +863,8 @@ impl UiSystem {
                         }
                     }
                 });
+
+            drop(_padding);
             // Save new x size for the left ui
             app.ui_system.general_menu_x = current_general_menu_x;
 
@@ -857,8 +884,8 @@ impl UiSystem {
                 .filter(|idx| *app.ui_system.tiled_windows.get(idx).unwrap_or(&false))
                 .count();
 
-            let tiled_width = if tiled_count > 0 {
-                (display_size[0] - snap_zone_x).max(120.0) / tiled_count as f32
+            let tiled_height = if tiled_count > 0 {
+                display_size[1] / tiled_count as f32
             } else {
                 0.0
             };
@@ -867,8 +894,6 @@ impl UiSystem {
             let mut pending_tile_update : Vec<(usize, bool)> = Vec::new();
             let mut pending_color_update : Vec<(usize, Rgba)> = Vec::new();
             let mut still_open: Vec<usize> = Vec::new();
-
-            let _style = UiSystem::set_style_window(&ui);
 
             // Draw all windows to change bones color
             for (i, &bone_idx) in app.ui_system.open_color_windows.iter().enumerate() {
@@ -905,16 +930,20 @@ impl UiSystem {
                     .window(&window_title)
                     .opened(&mut is_open);
 
+                let _style: StyleStackToken<'_>;
+
                 if is_tiled {
-                    let x = snap_zone_x + (tiled_slot as f32) * tiled_width;
+                    let y = (tiled_slot as f32) * tiled_height;
                     tiled_slot += 1;
                     builder = builder
-                        .position([x, 0.0], imgui::Condition::Always)
-                        .size([tiled_width, display_size[1]], imgui::Condition::Always);
+                        .position([snap_zone_x, y], imgui::Condition::Always)
+                        .size([display_size[0] - snap_zone_x, tiled_height], imgui::Condition::Always);
+                    _style = UiSystem::set_style_tiled(&ui);
                 } else {
                     builder = builder
                         .position(free_pos, imgui::Condition::FirstUseEver)
                         .size(free_size, imgui::Condition::FirstUseEver);
+                    _style = UiSystem::set_style_window(&ui);
                 };
 
                 builder.build(|| {
@@ -937,9 +966,13 @@ impl UiSystem {
                 });
 
                 let right_edge = win_pos[0] + win_size[0];
-                let enters_right_zone = right_edge >= snap_zone_x;
+                let enters_right_zone = right_edge >= display_size[0];
 
-                next_tiled = !is_tiled && enters_right_zone;
+                if !is_tiled && enters_right_zone {
+                    next_tiled = true;
+                } else if is_tiled && dragging_window && win_pos[0] < snap_zone_x - 20.0 {
+                    next_tiled = false;
+                }
 
                 if next_tiled != is_tiled {
                     pending_tile_update.push((bone_idx, next_tiled));
@@ -960,9 +993,9 @@ impl UiSystem {
                         }
                     ));
                 }
+                drop(_style);
             }
 
-            drop(_style);
             // Close windows that need to be closed
             app.ui_system.open_color_windows = still_open;
 
