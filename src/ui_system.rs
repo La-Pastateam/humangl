@@ -6,7 +6,6 @@ use imgui::internal::RawWrapper;
 use anyhow::Result;
 use vulkanalia::prelude::v1_0::*;
 
-use std::collections::HashMap;
 use std::ptr::copy_nonoverlapping as memcpy;
 
 use crate::vulkan::buffer::{create_buffer};
@@ -48,11 +47,12 @@ pub struct UiSystem {
     pub ui_secondary_command_buffers: Vec<vk::CommandBuffer>,
     pub ui_command_pool: vk::CommandPool,
 
-    pub ui_visible: bool,
-    general_menu_x: f32,
+    pub show_ui: bool,
+    show_bone_search: bool,
+    bone_search_query: String,
     selected_bone: usize,
-    open_color_windows: Vec<usize>,
-    tiled_windows: HashMap<usize, bool>,
+    open_bone_windows: Vec<usize>,
+    tiled_windows: Vec<(usize, usize)>,
 }
 
 
@@ -578,11 +578,12 @@ impl UiSystem {
             descriptor_set_layout,
             ui_secondary_command_buffers,
             ui_command_pool,
-            ui_visible: true,
-            general_menu_x: 300.0,
+            show_ui: true,
+            show_bone_search: false,
+            bone_search_query: "".to_string(),
             selected_bone: 0,
-            open_color_windows: Vec::new(),
-            tiled_windows: HashMap::new(),
+            open_bone_windows: Vec::new(),
+            tiled_windows: Vec::new(),
         })
     }
 
@@ -797,166 +798,241 @@ impl UiSystem {
         Ok(command_buffer)
     }
 
+    unsafe fn set_tiling_zone() {
+
+    }
+
     pub unsafe fn draw_window(app: &mut App) -> Result<()> {
         // Render UI
         let ui = app.ui_system.imgui.frame();
 
-        if app.ui_system.ui_visible {
+        if app.ui_system.show_ui {
             // Get display size
             let display_size = ui.io().display_size;
-            // Get the actual x value of the left ui
-            let mut current_general_menu_x = app.ui_system.general_menu_x;
 
-            let _padding = ui.push_style_var(imgui::StyleVar::WindowPadding([display_size[0] * 0.33, 1.0]));
-            // Prepare left ui window
+
+            // -- Menu Bar --------------------------------------------------------------------
+            let menu_label = "Bones";
+            let btn_h: f32 = 24.0;
+            let btn_w: f32 = (ui.calc_text_size(menu_label)[0] + 24.0).max(70.0);
+
+            let start_x = ((display_size[0] - btn_w) * 0.5).max(8.0);
+            let start_y = ((MENU_BAR_SIZE_PX - btn_h) * 0.5).max(2.0);
+            let popup_id = "##bones_dropdown";
+
+            let _padding = ui.push_style_var(imgui::StyleVar::WindowPadding([display_size[0] * 0.33, 0.0]));
+            let _background = ui.push_style_color(imgui::StyleColor::WindowBg, [0.05, 0.055, 0.065, 0.98]);
+            let _popup_rounding = ui.push_style_var(imgui::StyleVar::PopupRounding(3.0));
+            let _popup_border = ui.push_style_var(imgui::StyleVar::PopupBorderSize(1.0));
+            let _frame_rounding = ui.push_style_var(imgui::StyleVar::FrameRounding(3.0));
+            let _item_spacing = ui.push_style_var(imgui::StyleVar::ItemSpacing([8.0, 6.0]));
+            let _btn_idle = ui.push_style_color(imgui::StyleColor::Button, [0.0, 0.0, 0.0, 0.0]);
+            let _btn_hover = ui.push_style_color(imgui::StyleColor::ButtonHovered, [0.0, 0.0, 0.0, 0.0]);
+            let _btn_active = ui.push_style_color(imgui::StyleColor::ButtonActive, [1.0, 1.0, 1.0, 0.08]);
+
             ui.window("Editor")
                 .size([display_size[0], MENU_BAR_SIZE_PX], imgui::Condition::Always)
                 .position([0.0, 0.0], imgui::Condition::Always)
                 .flags(
                     imgui::WindowFlags::NO_MOVE
-                    | imgui::WindowFlags::NO_COLLAPSE
-                    | imgui::WindowFlags::NO_TITLE_BAR
-                    | imgui::WindowFlags::NO_RESIZE
-                    | imgui::WindowFlags::NO_SCROLLBAR
-                    | imgui::WindowFlags::NO_SCROLL_WITH_MOUSE
+                        | imgui::WindowFlags::NO_COLLAPSE
+                        | imgui::WindowFlags::NO_TITLE_BAR
+                        | imgui::WindowFlags::NO_RESIZE
+                        | imgui::WindowFlags::NO_SCROLLBAR
+                        | imgui::WindowFlags::NO_SCROLL_WITH_MOUSE,
                 )
                 .build(|| {
-                    // Get new window size
-                    current_general_menu_x = ui.window_size()[0];
+                    ui.set_cursor_pos([start_x, start_y]);
 
-                    // Get bones vec
-                    let bones = app.skeleton.bones();
-
-                    if !bones.is_empty() {
-                        // If selected bone doesn't have a valid index, put it to 0
-                        if app.ui_system.selected_bone >= bones.len() {
-                            app.ui_system.selected_bone = 0;
-                        }
-
-                        let combo_w = 150.0;
-                        let spacing = 8.0;
-                        let btn_w = ui.calc_text_size("Open Color Window")[0] + 2.0 * 2.0;
-                        let total_w = combo_w + spacing + btn_w;
-
-                        let start_x = ((display_size[0] - total_w) * 0.5).max(8.0);
-
-                        let _width = ui.push_item_width(combo_w);
-
-                        ui.set_cursor_pos([start_x, 0.0]);
-                        // Init bone selector
-                        if ui.combo("##bone_selector", &mut app.ui_system.selected_bone, bones, |bone| {
-                            std::borrow::Cow::Borrowed(bone.label())
-                        }) {
-                            // Code executed when we select a new one
-                        };
-
-                        drop(_width);
-
-                        ui.same_line_with_spacing(0.0, spacing);
-
-                        // Button to open a new color selector for the current bone
-                        if ui.button("Open Color Window") {
-                            let idx = app.ui_system.selected_bone;
-                            if !app.ui_system.open_color_windows.contains(&idx) {
-                                app.ui_system.open_color_windows.push(idx);
-                            }
-                        }
+                    if ui.button_with_size(menu_label, [btn_w, btn_h]) || ui.is_item_hovered() {
+                        ui.open_popup(popup_id);
                     }
+
+                    let item_min = ui.item_rect_min();
+                    // Positionne le menu déroulant juste en dessous de la barre du haut
+                    unsafe {
+                        imgui::sys::igSetNextWindowPos(
+                            imgui::sys::ImVec2 {
+                                x: item_min[0],
+                                y: MENU_BAR_SIZE_PX + 2.0,
+                            },
+                            imgui::sys::ImGuiCond_Always as i32,
+                            imgui::sys::ImVec2 { x: 0.0, y: 0.0 },
+                        );
+                    }
+
+                    let _menu_pad = ui.push_style_var(imgui::StyleVar::WindowPadding([10.0, 8.0]));
+                    ui.popup(popup_id, || {
+                        if ui.menu_item("Search bone") {
+                            app.ui_system.show_bone_search = true;
+                        }
+                    });
+                    drop(_menu_pad);
                 });
 
+            drop(_btn_active);
+            drop(_btn_hover);
+            drop(_btn_idle);
+            drop(_item_spacing);
+            drop(_frame_rounding);
+            drop(_popup_border);
+            drop(_popup_rounding);
             drop(_padding);
-            // Save new x size for the left ui
-            app.ui_system.general_menu_x = current_general_menu_x;
+            drop(_background);
 
+
+
+
+            // -- Search Bone Window --------------------------------------------------------------------
+            // Search Bone Window
+            if app.ui_system.show_bone_search {
+                let mut open = app.ui_system.show_bone_search;
+                let mut chosen_bone_idx: Option<usize> = None;
+
+                let bones_list: Vec<(usize, String)> = app
+                    .skeleton
+                    .bones()
+                    .iter()
+                    .enumerate()
+                    .map(|(idx, b)| (idx, b.label().to_string()))
+                    .collect();
+
+                ui.window("Search Bone")
+                    .size([280.0, 340.0], imgui::Condition::FirstUseEver)
+                    .opened(&mut open)
+                    .build(|| {
+                        ui.input_text("Search", &mut app.ui_system.bone_search_query)
+                            .hint("Type a bone name...")
+                            .build();
+
+                        ui.separator();
+
+                        let query = app.ui_system.bone_search_query.to_lowercase();
+
+                        for (idx, label) in &bones_list {
+                            if query.is_empty() || label.to_lowercase().contains(&query) {
+                                let is_selected = app.ui_system.selected_bone == *idx;
+                                if ui.selectable_config(label)
+                                    .selected(is_selected)
+                                    .build()
+                                {
+                                    chosen_bone_idx = Some(*idx);
+                                }
+                            }
+                        }
+                    });
+
+                app.ui_system.show_bone_search = open;
+
+                if let Some(idx) = chosen_bone_idx {
+                    app.ui_system.selected_bone = idx;
+                    if !app.ui_system.open_bone_windows.contains(&idx) {
+                        app.ui_system.open_bone_windows.push(idx);
+                    }
+                    app.ui_system.bone_search_query.clear();
+                }
+            }
+
+            // -- Tiling and Windows --------------------------------------------------------------------
+            let zones = set_tiling_zone(display_size);
             let bone_count = app.skeleton.bones().len();
-            let snap_zone_x = display_size[0] * 0.80;
 
-            // Get tiled windows that are still displayed
+            // Erase bones in tiled window that are closed
             app.ui_system
                 .tiled_windows
-                .retain(|idx, _| *idx < bone_count && app.ui_system.open_color_windows.contains(idx));
+                .retain(|(idx, _)| *idx < bone_count && app.ui_system.open_bone_windows.contains(idx));
 
-            // Count the number of tiled windows
-            let tiled_count = app
-                .ui_system
-                .open_color_windows
-                .iter()
-                .filter(|idx| *app.ui_system.tiled_windows.get(idx).unwrap_or(&false))
-                .count();
+            // Check if we don't have the same window idx twice
+            let mut seen_bones = std::collections::HashSet::new();
+            app.ui_system
+                .tiled_windows
+                .retain(|(idx, _)| seen_bones.insert(*idx));
 
-            let tiled_height = if tiled_count > 0 {
-                display_size[1] / tiled_count as f32
-            } else {
-                0.0
+            // Function to count how many window we have in each zone
+            let count_in_zone = |zone_id: usize| -> usize {
+                app.ui_system
+                    .tiled_windows
+                    .iter()
+                    .filter(|(_, z)| *z == zone_id)
+                    .count()
             };
 
-            let mut tiled_slot: usize = 0;
-            let mut pending_tile_update : Vec<(usize, bool)> = Vec::new();
-            let mut pending_color_update : Vec<(usize, Rgba)> = Vec::new();
+            let mut slot_in_zone: [usize; 2] = [0, 0];
+            let mut pending_tile_set: Vec<(usize, usize)> = Vec::new();
+            let mut pending_tile_remove: Vec<usize> = Vec::new();
+            let mut pending_color_update: Vec<(usize, Rgba)> = Vec::new();
             let mut still_open: Vec<usize> = Vec::new();
 
-            // Draw all windows to change bones color
-            for (i, &bone_idx) in app.ui_system.open_color_windows.iter().enumerate() {
+            for (i, &bone_idx) in app.ui_system.open_bone_windows.iter().enumerate() {
                 let Some(bone) = app.skeleton.bones().get(bone_idx) else {
                     continue;
                 };
-                // Get the rgb color of the actual bone
+
                 let colors = bone.color();
-                let mut rgb: [f32;4] = [
+                let mut rgb: [f32; 4] = [
                     colors.r as f32 / 255.0,
                     colors.g as f32 / 255.0,
                     colors.b as f32 / 255.0,
-                    colors.a as f32 / 255.0
+                    colors.a as f32 / 255.0,
                 ];
 
-                // Var to see if color has changed
                 let mut color_changed = false;
-                // Var to get the right window title
-                let window_title = format!("Color: {}##bone_color_{}", bone.label(), bone_idx);
-                // Var to see if window is still open
+                let window_title = format!("Bone: {}##bone_{}", bone.label(), bone_idx);
                 let mut is_open = true;
-                // See if the window is tiled
-                let is_tiled = *app.ui_system.tiled_windows.get(&bone_idx).unwrap_or(&false);
-                let mut next_tiled = is_tiled;
+
+                // Get zone if window is tiled
+                let current_zone_id: Option<usize> = app
+                    .ui_system
+                    .tiled_windows
+                    .iter()
+                    .find(|(idx, _)| *idx == bone_idx)
+                    .map(|(_, z)| *z);
+
+                let mut next_zone_id: Option<usize> = current_zone_id;
+                let mut request_untile = false;
 
                 let free_size = [display_size[0] / 6.0, display_size[1] / 4.0];
-                let free_pos = [(display_size[0] / 2.0) + (i as f32 * 20.0), (display_size[1] / 4.0) + (i as f32 * 20.0)];
+                let free_pos = [
+                    (display_size[0] / 2.0) + (i as f32 * 20.0),
+                    (display_size[1] / 4.0) + (i as f32 * 20.0),
+                ];
 
                 let mut win_size = free_size;
                 let mut win_pos = free_pos;
                 let mut dragging_window = false;
 
-                let mut builder = ui
-                    .window(&window_title)
-                    .opened(&mut is_open);
-
+                let mut builder = ui.window(&window_title).opened(&mut is_open);
                 let _style: StyleStackToken<'_>;
 
-                if is_tiled {
-                    let y = (tiled_slot as f32) * tiled_height;
-                    tiled_slot += 1;
+                // Check if tiled or free and create appropriate builder
+                if let Some(z_id) = current_zone_id {
+                    let zone = zones.iter().find(|z| z.id == z_id).unwrap_or(&zones[0]);
+                    let z_count = count_in_zone(zone.id).max(1);
+                    let item_h = zone.height / z_count as f32;
+                    let y = zone.y + (slot_in_zone[zone.id] as f32) * item_h;
+                    slot_in_zone[zone.id] += 1;
+
                     builder = builder
-                        .position([snap_zone_x, y], imgui::Condition::Always)
-                        .size([display_size[0] - snap_zone_x, tiled_height], imgui::Condition::Always);
-                    _style = UiSystem::set_style_tiled(&ui);
+                        .position([zone.x, y], imgui::Condition::Always)
+                        .size([zone.width, item_h], imgui::Condition::Always);
+                    _style = UiSystem::set_style_tiled(ui);
                 } else {
                     builder = builder
                         .position(free_pos, imgui::Condition::FirstUseEver)
                         .size(free_size, imgui::Condition::FirstUseEver);
-                    _style = UiSystem::set_style_window(&ui);
-                };
+                    _style = UiSystem::set_style_window(ui);
+                }
 
+                // Build the window
                 builder.build(|| {
                     win_pos = ui.window_pos();
                     win_size = ui.window_size();
-                    dragging_window = ui.is_window_hovered()
-                        && ui.is_mouse_dragging(imgui::MouseButton::Left);
+                    dragging_window =
+                        ui.is_window_hovered() && ui.is_mouse_dragging(imgui::MouseButton::Left);
 
-
-                    // Color selector for the bone
                     ui.text("Change color !");
-                    if is_tiled && ui.small_button("untile") {
-                        next_tiled = false;
+                    if current_zone_id.is_some() && ui.small_button("untile") {
+                        request_untile = true;
                     }
 
                     let picker_id = format!("##picker_{}", bone_idx);
@@ -965,17 +1041,33 @@ impl UiSystem {
                     }
                 });
 
-                let right_edge = win_pos[0] + win_size[0];
-                let enters_right_zone = right_edge >= display_size[0];
+                // Get the zone if the window moves in one
+                let matched_zone = zones
+                    .iter()
+                    .find(|z| z.contains_window(win_pos, win_size))
+                    .map(|z| z.id);
 
-                if !is_tiled && enters_right_zone {
-                    next_tiled = true;
-                } else if is_tiled && dragging_window && win_pos[0] < snap_zone_x - 20.0 {
-                    next_tiled = false;
+                if !is_open || request_untile {
+                    next_zone_id = None;
+                } else if let Some(z_id) = matched_zone {
+                    // If it's already tiled, we untile it only if we move it
+                    if let Some(cur_z) = current_zone_id {
+                        if dragging_window && cur_z != z_id {
+                            next_zone_id = Some(z_id);
+                        }
+                    } else {
+                        next_zone_id = Some(z_id);
+                    }
+                } else if current_zone_id.is_some() && dragging_window {
+                    next_zone_id = None;
                 }
 
-                if next_tiled != is_tiled {
-                    pending_tile_update.push((bone_idx, next_tiled));
+                match (current_zone_id, next_zone_id) {
+                    (Some(_), None) => pending_tile_remove.push(bone_idx),
+                    (_, Some(z_id)) if current_zone_id != Some(z_id) => {
+                        pending_tile_set.push((bone_idx, z_id));
+                    }
+                    _ => {}
                 }
 
                 if is_open {
@@ -989,27 +1081,179 @@ impl UiSystem {
                             r: (rgb[0] * 255.0).round() as u8,
                             g: (rgb[1] * 255.0).round() as u8,
                             b: (rgb[2] * 255.0).round() as u8,
-                            a: (rgb[3] * 255.0).round() as u8
-                        }
+                            a: (rgb[3] * 255.0).round() as u8,
+                        },
                     ));
                 }
+
                 drop(_style);
             }
 
-            // Close windows that need to be closed
-            app.ui_system.open_color_windows = still_open;
+            // Apply changes after the loop
+            app.ui_system.open_bone_windows = still_open;
 
-            for (bone_idx, tiled) in pending_tile_update {
-                app.ui_system.tiled_windows.insert(bone_idx, tiled);
+            for bone_idx in pending_tile_remove {
+                app.ui_system.tiled_windows.retain(|(idx, _)| *idx != bone_idx);
             }
 
-            // Change bone color if the color has been changed
+            for (bone_idx, zone_id) in pending_tile_set {
+                if let Some(entry) = app
+                    .ui_system
+                    .tiled_windows
+                    .iter_mut()
+                    .find(|(idx, _)| *idx == bone_idx)
+                {
+                    entry.1 = zone_id;
+                } else {
+                    app.ui_system.tiled_windows.push((bone_idx, zone_id));
+                }
+            }
+
             for (bone_idx, new_color) in pending_color_update {
                 if let Some(bone) = app.skeleton.bones_mut().get_mut(bone_idx) {
                     bone.change_color(new_color);
                 }
             }
         }
+
+        //     // Free and tiled windows
+        //     let bone_count = app.skeleton.bones().len();
+        //     let snap_zone_x = display_size[0] * 0.80;
+        //
+        //     // Get tiled windows that are still displayed
+        //     app.ui_system
+        //         .tiled_windows
+        //         .retain(|(idx, _)| *idx < bone_count && app.ui_system.open_bone_windows.contains(idx));
+        //
+        //     // Count the number of tiled windows
+        //     let tiled_count = app.ui_system.tiled_windows.len();
+        //
+        //     let tiled_height = if tiled_count > 0 {
+        //         display_size[1] / tiled_count as f32
+        //     } else {
+        //         0.0
+        //     };
+        //
+        //     let mut tiled_slot: usize = 0;
+        //     let mut pending_tile_update : Vec<(usize, bool)> = Vec::new();
+        //     let mut pending_color_update : Vec<(usize, Rgba)> = Vec::new();
+        //     let mut still_open: Vec<usize> = Vec::new();
+        //
+        //     // Draw all windows to change bones color
+        //     for (i, &bone_idx) in app.ui_system.open_bone_windows.iter().enumerate() {
+        //         let Some(bone) = app.skeleton.bones().get(bone_idx) else {
+        //             continue;
+        //         };
+        //         // Get the rgb color of the actual bone
+        //         let colors = bone.color();
+        //         let mut rgb: [f32;4] = [
+        //             colors.r as f32 / 255.0,
+        //             colors.g as f32 / 255.0,
+        //             colors.b as f32 / 255.0,
+        //             colors.a as f32 / 255.0
+        //         ];
+        //
+        //         // Var to see if color has changed
+        //         let mut color_changed = false;
+        //         // Var to get the right window title
+        //         let window_title = format!("Color: {}##bone_color_{}", bone.label(), bone_idx);
+        //         // Var to see if window is still open
+        //         let mut is_open = true;
+        //         // See if the window is tiled
+        //         let is_tiled = *app.ui_system.tiled_windows.get(&bone_idx).unwrap_or(&false);
+        //         let mut next_tiled = is_tiled;
+        //
+        //         let free_size = [display_size[0] / 6.0, display_size[1] / 4.0];
+        //         let free_pos = [(display_size[0] / 2.0) + (i as f32 * 20.0), (display_size[1] / 4.0) + (i as f32 * 20.0)];
+        //
+        //         let mut win_size = free_size;
+        //         let mut win_pos = free_pos;
+        //         let mut dragging_window = false;
+        //
+        //         let mut builder = ui
+        //             .window(&window_title)
+        //             .opened(&mut is_open);
+        //
+        //         let _style: StyleStackToken<'_>;
+        //
+        //         if is_tiled {
+        //             let y = (tiled_slot as f32) * tiled_height;
+        //             tiled_slot += 1;
+        //             builder = builder
+        //                 .position([snap_zone_x, y], imgui::Condition::Always)
+        //                 .size([display_size[0] - snap_zone_x, tiled_height], imgui::Condition::Always);
+        //             _style = UiSystem::set_style_tiled(&ui);
+        //         } else {
+        //             builder = builder
+        //                 .position(free_pos, imgui::Condition::FirstUseEver)
+        //                 .size(free_size, imgui::Condition::FirstUseEver);
+        //             _style = UiSystem::set_style_window(&ui);
+        //         };
+        //
+        //         builder.build(|| {
+        //             win_pos = ui.window_pos();
+        //             win_size = ui.window_size();
+        //             dragging_window = ui.is_window_hovered()
+        //                 && ui.is_mouse_dragging(imgui::MouseButton::Left);
+        //
+        //
+        //             // Color selector for the bone
+        //             ui.text("Change color !");
+        //             if is_tiled && ui.small_button("untile") {
+        //                 next_tiled = false;
+        //             }
+        //
+        //             let picker_id = format!("##picker_{}", bone_idx);
+        //             if ui.color_picker4(&picker_id, &mut rgb) {
+        //                 color_changed = true;
+        //             }
+        //         });
+        //
+        //         let right_edge = win_pos[0] + win_size[0];
+        //         let enters_right_zone = right_edge >= display_size[0];
+        //
+        //         if !is_tiled && enters_right_zone {
+        //             next_tiled = true;
+        //         } else if is_tiled && dragging_window && win_pos[0] < snap_zone_x - 20.0 {
+        //             next_tiled = false;
+        //         }
+        //
+        //         if next_tiled != is_tiled {
+        //             pending_tile_update.push((bone_idx, next_tiled));
+        //         }
+        //
+        //         if is_open {
+        //             still_open.push(bone_idx);
+        //         }
+        //
+        //         if color_changed {
+        //             pending_color_update.push((
+        //                 bone_idx,
+        //                 Rgba {
+        //                     r: (rgb[0] * 255.0).round() as u8,
+        //                     g: (rgb[1] * 255.0).round() as u8,
+        //                     b: (rgb[2] * 255.0).round() as u8,
+        //                     a: (rgb[3] * 255.0).round() as u8
+        //                 }
+        //             ));
+        //         }
+        //         drop(_style);
+        //     }
+        //
+        //     // Close windows that need to be closed
+        //     app.ui_system.open_bone_windows = still_open;
+        //
+        //     for (bone_idx, tiled) in pending_tile_update {
+        //         app.ui_system.tiled_windows.insert(bone_idx, tiled);
+        //     }
+        //
+        //     // Change bone color if the color has been changed
+        //     for (bone_idx, new_color) in pending_color_update {
+        //         if let Some(bone) = app.skeleton.bones_mut().get_mut(bone_idx) {
+        //             bone.change_color(new_color);
+        //         }
+        //     }
+        // }
         Ok(())
     }
 
@@ -1027,4 +1271,50 @@ impl UiSystem {
         device.destroy_sampler(self.font_sampler, None);
         device.destroy_descriptor_pool(self.descriptor_pool, None);
     }
+}
+
+
+#[derive(Clone, Copy, Debug)]
+struct TilingZone {
+    id: usize,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+}
+
+impl TilingZone {
+    fn contains_window(&self, win_pos: [f32; 2], win_size: [f32; 2]) -> bool {
+        let win_right = win_pos[0] + win_size[0];
+        let win_bottom = win_pos[1] + win_size[1];
+        let zone_right = self.x + self.width;
+        let zone_bottom = self.y + self.height;
+
+        // Chevauchement horizontal et vertical avec la zone
+        win_right > self.x && win_pos[0] < zone_right && win_bottom > self.y && win_pos[1] < zone_bottom
+    }
+}
+
+unsafe fn set_tiling_zone(display_size: [f32; 2]) -> [TilingZone; 2] {
+    let top_y = MENU_BAR_SIZE_PX;
+    let usable_h = (display_size[1] - top_y).max(50.0);
+    let zone_w = (display_size[0] * 0.20).max(140.0);
+
+    let left_zone = TilingZone {
+        id: 0,
+        x: 0.0,
+        y: top_y,
+        width: zone_w,
+        height: usable_h,
+    };
+
+    let right_zone = TilingZone {
+        id: 1,
+        x: (display_size[0] - zone_w).max(0.0),
+        y: top_y,
+        width: zone_w,
+        height: usable_h,
+    };
+
+    [left_zone, right_zone]
 }

@@ -121,7 +121,7 @@ impl ApplicationHandler for GeneralApp {
                 if event.state == ElementState::Pressed
                 && !app.ui_system.imgui.io().want_capture_keyboard => {
                     match handle_input(event.physical_key, &mut app.data) {
-                        Ok(Signal::ToggleUi) => app.ui_system.ui_visible = !app.ui_system.ui_visible,
+                        Ok(Signal::ToggleUi) => app.ui_system.show_ui = !app.ui_system.show_ui,
                         Ok(Signal::Nothing) => {}
                         Ok(Signal::Exit) => {
                             exit_app(app, event_loop);
