@@ -1,5 +1,6 @@
 use imgui::{Context, FontConfig, FontGlyphRanges, FontSource, StyleColor, StyleStackToken, Ui};
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
+use winit::keyboard::NamedKey::DisplaySwap;
 use winit::window::Window;
 use imgui::internal::RawWrapper;
 
@@ -1285,13 +1286,12 @@ struct TilingZone {
 
 impl TilingZone {
     fn contains_window(&self, win_pos: [f32; 2], win_size: [f32; 2]) -> bool {
-        let win_right = win_pos[0] + win_size[0];
-        let win_bottom = win_pos[1] + win_size[1];
-        let zone_right = self.x + self.width;
-        let zone_bottom = self.y + self.height;
-
-        // Chevauchement horizontal et vertical avec la zone
-        win_right > self.x && win_pos[0] < zone_right && win_bottom > self.y && win_pos[1] < zone_bottom
+        if self.id == 0 {
+            return win_pos[0] <= self.x;
+        } else if self.id == 1 {
+            return win_pos[0] + win_size[0] >= self.x + self.width;
+        }
+        false
     }
 }
 
